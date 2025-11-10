@@ -1,0 +1,98 @@
+#!/bin/bash
+
+# Script to manage screen configurations for different remote contexts
+# Usage: ./remote-screen <device>
+# Where device is: desktop, laptop, or ipad
+
+set -e
+
+DISPLAYMODE="$HOME/downloads/displaymode/displaymode"
+
+# Validate arguments
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 <device>"
+    echo "  device: desktop, laptop, or ipad"
+    exit 1
+fi
+
+DEVICE="$1"
+
+# Validate device parameter
+case "$DEVICE" in
+    desktop|laptop|ipad)
+        ;;
+    *)
+        echo "Error: Invalid device '$DEVICE'"
+        echo "Valid options: desktop, laptop, ipad"
+        exit 1
+        ;;
+esac
+
+# Function to detect if mirroring is currently enabled
+# Returns 0 if mirroring is ON, 1 if mirroring is OFF
+is_mirroring_enabled() {
+    local display_count
+    display_count=$("$DISPLAYMODE" d | grep -c "^Display [0-9]")
+
+    if [ "$display_count" -eq 1 ]; then
+        return 0  # Mirroring is ON (only 1 display shown)
+    else
+        return 1  # Mirroring is OFF (multiple displays)
+    fi
+}
+
+# Function to toggle mirroring if needed
+# Arguments: 1 to enable mirroring, 0 to disable
+ensure_mirroring_state() {
+    local desired_state=$1
+    local current_state
+
+    if is_mirroring_enabled; then
+        current_state=1
+    else
+        current_state=0
+    fi
+
+    # Only toggle if current state doesn't match desired state
+    if [ "$current_state" -ne "$desired_state" ]; then
+        echo "Toggling mirroring..."
+        mirror
+        sleep 1  # Give the system a moment to apply the change
+    fi
+}
+
+# Function to set resolution
+# Arguments: width height refresh
+set_resolution() {
+    local width=$1
+    local height=$2
+    local refresh=$3
+
+    echo "Setting resolution to ${width}x${height}@${refresh}Hz..."
+    "$DISPLAYMODE" t "$width" "$height" "@$refresh"
+}
+
+# Main logic
+echo "Configuring for $DEVICE mode..."
+
+case "$DEVICE" in
+    desktop)
+        echo "Desktop mode: Mirroring OFF, 2560x1440@60Hz"
+        ensure_mirroring_state 0
+        set_resolution 2560 1440 60
+        ;;
+
+    laptop)
+        echo "Laptop mode: Mirroring ON, 1680x1050@60Hz"
+        ensure_mirroring_state 1
+        set_resolution 1680 1050 60
+        ;;
+
+    ipad)
+        echo "iPad mode: Mirroring ON, 1600x1200@60Hz"
+        ensure_mirroring_state 1
+        set_resolution 1600 1200 60
+        ;;
+esac
+
+echo "Configuration complete!"
