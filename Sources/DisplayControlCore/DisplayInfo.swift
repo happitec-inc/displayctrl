@@ -48,14 +48,27 @@ public struct DisplayInfo: Identifiable, Codable {
     public let index: UInt32
     public let isMain: Bool
     public let isMirrored: Bool
+    public let mirrorMasterID: UInt32?
+    public let serialNumber: UInt32?
     public let currentMode: DisplayMode?
     public let availableModes: [DisplayMode]
 
-    public init(id: UInt32, index: UInt32, isMain: Bool, isMirrored: Bool, currentMode: DisplayMode?, availableModes: [DisplayMode]) {
+    public init(
+        id: UInt32,
+        index: UInt32,
+        isMain: Bool,
+        isMirrored: Bool,
+        mirrorMasterID: UInt32? = nil,
+        serialNumber: UInt32? = nil,
+        currentMode: DisplayMode?,
+        availableModes: [DisplayMode]
+    ) {
         self.id = id
         self.index = index
         self.isMain = isMain
         self.isMirrored = isMirrored
+        self.mirrorMasterID = mirrorMasterID
+        self.serialNumber = serialNumber
         self.currentMode = currentMode
         self.availableModes = availableModes
     }

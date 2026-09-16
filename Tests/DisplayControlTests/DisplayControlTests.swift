@@ -9,9 +9,21 @@ final class DisplayControlTests: XCTestCase {
             displays: [
                 DisplayConfiguration.DisplayConfig(
                     index: 0,
+                    serialNumber: 12345678,
                     width: 1920,
                     height: 1080,
-                    refreshRate: 60.0
+                    refreshRate: 60.0,
+                    mirrorMasterIndex: nil,
+                    mirrorMasterSerial: nil
+                ),
+                DisplayConfiguration.DisplayConfig(
+                    index: 1,
+                    serialNumber: 87654321,
+                    width: 1920,
+                    height: 1080,
+                    refreshRate: 60.0,
+                    mirrorMasterIndex: 0,
+                    mirrorMasterSerial: 12345678
                 )
             ]
         )
@@ -25,11 +37,16 @@ final class DisplayControlTests: XCTestCase {
 
         XCTAssertEqual(decoded.name, "test-config")
         XCTAssertEqual(decoded.mirroring, .enabled)
-        XCTAssertEqual(decoded.displays.count, 1)
+        XCTAssertEqual(decoded.displays.count, 2)
         XCTAssertEqual(decoded.displays[0].index, 0)
+        XCTAssertEqual(decoded.displays[0].serialNumber, 12345678)
         XCTAssertEqual(decoded.displays[0].width, 1920)
         XCTAssertEqual(decoded.displays[0].height, 1080)
         XCTAssertEqual(decoded.displays[0].refreshRate, 60.0)
+        XCTAssertEqual(decoded.displays[1].index, 1)
+        XCTAssertEqual(decoded.displays[1].serialNumber, 87654321)
+        XCTAssertEqual(decoded.displays[1].mirrorMasterIndex, 0)
+        XCTAssertEqual(decoded.displays[1].mirrorMasterSerial, 12345678)
     }
 
     func testDisplayModeDescription() {

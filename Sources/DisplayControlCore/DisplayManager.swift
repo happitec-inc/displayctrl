@@ -41,6 +41,10 @@ public class DisplayManager {
             let isMain = displayID == mainDisplayID
             // CGDisplayIsInMirrorSet returns boolean_t (Int32), not Bool
             let isMirrored = CGDisplayIsInMirrorSet(displayID) != 0
+            let rawMaster = CGDisplayMirrorsDisplay(displayID)
+            let mirrorMasterID: UInt32? = rawMaster != 0 ? rawMaster : nil
+            let serialNum = CGDisplaySerialNumber(displayID)
+            let serialNumber: UInt32? = serialNum != 0 ? serialNum : nil
 
             // Get current mode
             guard let cgCurrentMode = CGDisplayCopyDisplayMode(displayID) else {
@@ -51,7 +55,7 @@ public class DisplayManager {
             // Get all available modes.
             // CGDisplayCopyAllDisplayModes returns a CFArray of CGDisplayMode (a CF type).
             // CF types cannot be conditionally cast from AnyObject; bridge via CFArray directly.
-            let availableModes: [DisplayMode]
+            var availableModes: [DisplayMode] = []
             if let cfArray = CGDisplayCopyAllDisplayModes(displayID, nil) {
                 let count = CFArrayGetCount(cfArray)
                 availableModes = (0..<count).map { i in
@@ -59,8 +63,12 @@ public class DisplayManager {
                     let mode = Unmanaged<CGDisplayMode>.fromOpaque(raw).takeUnretainedValue()
                     return DisplayMode(from: mode, isCurrent: false)
                 }
-            } else {
-                availableModes = []
+                // Sort by resolution descending, then refresh rate descending
+                availableModes.sort {
+                    if $0.width != $1.width { return $0.width > $1.width }
+                    if $0.height != $1.height { return $0.height > $1.height }
+                    return $0.refreshRate > $1.refreshRate
+                }
             }
 
             let displayInfo = DisplayInfo(
@@ -68,6 +76,8 @@ public class DisplayManager {
                 index: index,
                 isMain: isMain,
                 isMirrored: isMirrored,
+                mirrorMasterID: mirrorMasterID,
+                serialNumber: serialNumber,
                 currentMode: currentMode,
                 availableModes: availableModes
             )
@@ -205,6 +215,26 @@ public class DisplayManager {
         }
     }
 
+    /// Mirror a specific display to another by display ID
+    public func mirrorDisplayIDs(slave slaveID: CGDirectDisplayID, to masterID: CGDirectDisplayID) throws {
+        var config: CGDisplayConfigRef?
+        var error = CGBeginDisplayConfiguration(&config)
+        guard error == .success, let config = config else {
+            throw DisplayError.configurationFailed(error)
+        }
+
+        error = CGConfigureDisplayMirrorOfDisplay(config, slaveID, masterID)
+        guard error == .success else {
+            CGCancelDisplayConfiguration(config)
+            throw DisplayError.configurationFailed(error)
+        }
+
+        error = CGCompleteDisplayConfiguration(config, .permanently)
+        guard error == .success else {
+            throw DisplayError.configurationFailed(error)
+        }
+    }
+
     // MARK: - Resolution Management (from displaymode)
 
     /// Set the display mode for a specific display
@@ -222,10 +252,12 @@ public class DisplayManager {
             throw DisplayError.invalidConfiguration
         }
         let modeCount = CFArrayGetCount(cfArray)
-        let cgModes: [CGDisplayMode] = (0..<modeCount).map { i in
+        var cgModes: [CGDisplayMode] = (0..<modeCount).map { i in
             let raw = CFArrayGetValueAtIndex(cfArray, i)!
             return Unmanaged<CGDisplayMode>.fromOpaque(raw).takeUnretainedValue()
         }
+        // Prefer highest refresh rate when refresh rate is not specified
+        cgModes.sort { $0.refreshRate > $1.refreshRate }
 
         guard let cgMode = cgModes.first(where: { mode in
             mode.width == width &&
