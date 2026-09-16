@@ -1,0 +1,23 @@
+name: PR
+
+# Runs swift build + swift test on every PR targeting main.
+#
+# Status check name: once this has run green once, ask @administrivia to
+# add the required check. The check name will be:
+#   "Swift build and test / test"
+# (caller job name / inner job key from swift-test.yml)
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Swift build and test
+    uses: happitec-inc/shared-actions/.github/workflows/swift-test.yml@main
+    with:
+      runner: ${{ vars.RUNNER_MACOS }}
+      # No private SPM dependencies — HAPPITEC_READ_ONLY_PAT not needed.
