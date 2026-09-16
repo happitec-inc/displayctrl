@@ -2,61 +2,9 @@
 .build/
 .swiftpm/
 Package.resolved
-*.xcodeproj
-xcuserdata/
-DerivedData/
-
-# Xcode
-*.pbxuser
-!default.pbxuser
-*.mode1v3
-!default.mode1v3
-*.mode2v3
-!default.mode2v3
-*.perspectivev3
-!default.perspectivev3
-*.xcworkspace
-!default.xcworkspace
-*.xcuserstate
-*.xcscmblueprint
-*.xccheckout
-*.moved-aside
-*.hmap
-*.ipa
-*.dSYM.zip
-*.dSYM
 
 # macOS
 .DS_Store
-.AppleDouble
-.LSOverride
-Icon
-._*
-.DocumentRevisions-V100
-.fseventsd
-.Spotlight-V100
-.TemporaryItems
-.Trashes
-.VolumeIcon.icns
-.com.apple.timemachine.donotpresent
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
 
-# Build artifacts
-displayctl
-*.o
-*.so
-*.dylib
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# Configuration (user-specific)
-displayconfigs.json
+# Built binary (swift build output at repo root)
+displayctrl
