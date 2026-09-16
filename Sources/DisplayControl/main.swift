@@ -203,7 +203,16 @@ func handleResolutionCommand(_ args: [String]) {
         exit(1)
     }
 
-    let refreshRate: Double? = args.count >= 5 ? Double(args[4]) : nil
+    let refreshRate: Double?
+    if args.count >= 5 {
+        guard let parsedRate = Double(args[4]) else {
+            print("Error: Invalid refresh rate '\(args[4])'. Must be a number (e.g. 60 or 59.94).")
+            exit(1)
+        }
+        refreshRate = parsedRate
+    } else {
+        refreshRate = nil
+    }
 
     do {
         let manager = DisplayManager.shared
@@ -292,7 +301,8 @@ func handleConfigCommand(_ args: [String]) {
             print("Configuration '\(args[1])' deleted")
 
         case "init":
-            try configManager.createSampleConfiguration()
+            let force = args.contains("--force") || args.contains("-f")
+            try configManager.createSampleConfiguration(force: force)
             print("Sample configuration file created at:")
             print(configManager.configFileURL.path)
 

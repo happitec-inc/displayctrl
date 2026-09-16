@@ -36,5 +36,11 @@ let package = Package(
             name: "DisplayControl",
             dependencies: ["DisplayControlCore"]
         ),
+
+        // Test target
+        .testTarget(
+            name: "DisplayControlTests",
+            dependencies: ["DisplayControlCore"]
+        ),
     ]
 )
