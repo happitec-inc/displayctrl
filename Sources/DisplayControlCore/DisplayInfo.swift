@@ -28,7 +28,7 @@ public struct DisplayMode: Equatable, Codable {
         self.width = cgMode.width
         self.height = cgMode.height
         self.refreshRate = cgMode.refreshRate
-        self.isUsableForDesktop = cgMode.isUsableForDesktopGUI
+        self.isUsableForDesktop = cgMode.isUsableForDesktopGUI()
         self.isCurrent = isCurrent
     }
 

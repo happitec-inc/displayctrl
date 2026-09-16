@@ -1,0 +1,62 @@
+name: Release
+
+# On every push of a `vX.Y.Z` tag, build `displayctrl` from source,
+# sign it with Developer ID + hardened runtime, notarize it, and attach
+# the signed+notarized tarball as an asset on the corresponding GitHub Release.
+#
+# Runs in parallel with `bump-tap.yml` on the same tag. `bump-tap.yml`
+# opens a Homebrew formula bump PR on homebrew-internal; that formula
+# installs the pre-built binary (downloading this release asset) rather than
+# compiling from source. Building + signing here (where the signing secrets
+# are available) and shipping the binary is the "publish the artifact, not
+# the credential" distribution model.
+#
+# Bare-CLI notarization is verified online — no staple step for a non-.app
+# Mach-O binary.
+#
+# Reuses:
+#   shared-actions/sign-and-release-cli-binary.yml  (build + sign + notarize)
+#   shared-actions/release-with-assets.yml           (attach to GitHub Release)
+#
+# To cut a release:
+#   git tag vX.Y.Z
+#   git push --tags
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions: {}
+
+jobs:
+  sign:
+    permissions:
+      contents: read
+    uses: happitec-inc/shared-actions/.github/workflows/sign-and-release-cli-binary.yml@main
+    secrets:
+      developer-id-p12-base64: ${{ secrets.DEVELOPER_ID_P12_BASE64 }}
+      developer-id-p12-password: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
+      asc-api-key-base64: ${{ secrets.APPLE_ASC_API_KEY_BASE64 }}
+      asc-api-key-id: ${{ secrets.APPLE_ASC_API_KEY_ID }}
+      asc-api-issuer-id: ${{ secrets.APPLE_ASC_API_ISSUER_ID }}
+      # No private SPM dependencies — private-spm-pat left unset.
+    with:
+      runner: ${{ vars.RUNNER_MACOS }}
+      package-path: .
+      # SPM executableTarget name (DisplayControl); the product binary is
+      # named `displayctrl` via the Package.swift `name:` override.
+      target: DisplayControl
+      output-name: displayctrl
+      development-team: "42829SPC36"
+      signing-identifier: com.happitec.displayctrl
+      notarize: true
+
+  publish:
+    needs: sign
+    uses: happitec-inc/shared-actions/.github/workflows/release-with-assets.yml@main
+    permissions:
+      contents: write
+    with:
+      runner: ${{ vars.RUNNER_LINUX }}
+      tag: ${{ github.ref_name }}

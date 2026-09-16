@@ -39,7 +39,8 @@ public class DisplayManager {
         for index in 0..<displayCount {
             let displayID = displayIDs[Int(index)]
             let isMain = displayID == mainDisplayID
-            let isMirrored = CGDisplayIsInMirrorSet(displayID)
+            // CGDisplayIsInMirrorSet returns boolean_t (Int32), not Bool
+            let isMirrored = CGDisplayIsInMirrorSet(displayID) != 0
 
             // Get current mode
             guard let cgCurrentMode = CGDisplayCopyDisplayMode(displayID) else {
@@ -47,13 +48,19 @@ public class DisplayManager {
             }
             let currentMode = DisplayMode(from: cgCurrentMode, isCurrent: true)
 
-            // Get all available modes
-            guard let cgModes = CGDisplayCopyAllDisplayModes(displayID, nil) as? [CGDisplayMode] else {
-                continue
-            }
-
-            let availableModes = cgModes.map { mode in
-                DisplayMode(from: mode, isCurrent: false)
+            // Get all available modes.
+            // CGDisplayCopyAllDisplayModes returns a CFArray of CGDisplayMode (a CF type).
+            // CF types cannot be conditionally cast from AnyObject; bridge via CFArray directly.
+            let availableModes: [DisplayMode]
+            if let cfArray = CGDisplayCopyAllDisplayModes(displayID, nil) {
+                let count = CFArrayGetCount(cfArray)
+                availableModes = (0..<count).map { i in
+                    let raw = CFArrayGetValueAtIndex(cfArray, i)!
+                    let mode = Unmanaged<CGDisplayMode>.fromOpaque(raw).takeUnretainedValue()
+                    return DisplayMode(from: mode, isCurrent: false)
+                }
+            } else {
+                availableModes = []
             }
 
             let displayInfo = DisplayInfo(
@@ -84,7 +91,8 @@ public class DisplayManager {
 
     /// Check if displays are currently mirrored
     public func isMirrored() -> Bool {
-        return CGDisplayIsInMirrorSet(CGMainDisplayID())
+        // CGDisplayIsInMirrorSet returns boolean_t (Int32), not Bool
+        return CGDisplayIsInMirrorSet(CGMainDisplayID()) != 0
     }
 
     /// Enable mirroring for all secondary displays to the main display
@@ -140,7 +148,8 @@ public class DisplayManager {
 
         // Unmirror all secondary displays
         for secondaryID in secondaryDisplayIDs {
-            error = CGConfigureDisplayMirrorOfDisplay(config, secondaryID, kCGNullDirectDisplayID)
+            // kCGNullDirectDisplayID = 0 (use literal; constant removed from modern SDK)
+            error = CGConfigureDisplayMirrorOfDisplay(config, secondaryID, 0)
             guard error == .success else {
                 CGCancelDisplayConfiguration(config)
                 throw DisplayError.configurationFailed(error)
@@ -198,14 +207,20 @@ public class DisplayManager {
     public func setMode(displayIndex: UInt32, width: Int, height: Int, refreshRate: Double? = nil) throws {
         let (displayID, displayInfo) = try getDisplay(at: displayIndex)
 
-        // Find matching mode
-        guard let matchingMode = findMode(in: displayInfo.availableModes, width: width, height: height, refreshRate: refreshRate) else {
+        // Find matching mode (pre-check; validates user-specified resolution is available)
+        guard findMode(in: displayInfo.availableModes, width: width, height: height, refreshRate: refreshRate) != nil else {
             throw DisplayError.modeNotFound(width: width, height: height, refreshRate: refreshRate)
         }
 
-        // Get all available CGDisplayModes to find the actual mode object
-        guard let cgModes = CGDisplayCopyAllDisplayModes(displayID, nil) as? [CGDisplayMode] else {
+        // Get all available CGDisplayModes to find the actual CGDisplayMode object to apply.
+        // CGDisplayMode is a CF type — use Unmanaged.fromOpaque to extract from CFArray values.
+        guard let cfArray = CGDisplayCopyAllDisplayModes(displayID, nil) else {
             throw DisplayError.invalidConfiguration
+        }
+        let modeCount = CFArrayGetCount(cfArray)
+        let cgModes: [CGDisplayMode] = (0..<modeCount).map { i in
+            let raw = CFArrayGetValueAtIndex(cfArray, i)!
+            return Unmanaged<CGDisplayMode>.fromOpaque(raw).takeUnretainedValue()
         }
 
         guard let cgMode = cgModes.first(where: { mode in

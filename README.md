@@ -40,14 +40,14 @@ cd DisplayControl
 swift build -c release
 
 # Install the CLI tool (optional)
-cp .build/release/displayctl /usr/local/bin/
+cp .build/release/displayctrl /usr/local/bin/
 ```
 
 ### Using Xcode
 
 1. Open `Package.swift` in Xcode
 2. Build the project (⌘+B)
-3. The CLI tool will be in `.build/release/displayctl`
+3. The CLI tool will be in `.build/release/displayctrl`
 
 ## Usage
 
@@ -55,49 +55,49 @@ cp .build/release/displayctl /usr/local/bin/
 
 ```bash
 # List all displays and available modes
-displayctl list
+displayctrl list
 
 # Enable mirroring
-displayctl mirror on
+displayctrl mirror on
 
 # Disable mirroring
-displayctl mirror off
+displayctrl mirror off
 
 # Toggle mirroring
-displayctl mirror toggle
+displayctrl mirror toggle
 
 # Check mirroring status
-displayctl mirror status
+displayctrl mirror status
 
 # Make display 1 mirror display 0
-displayctl mirror link 1 0
+displayctrl mirror link 1 0
 
 # Set main display (0) to 1920x1080 at 60Hz
-displayctl resolution set 0 1920 1080 60
+displayctrl resolution set 0 1920 1080 60
 
 # Set secondary display (1) to 2560x1440 (any refresh rate)
-displayctl resolution set 1 2560 1440
+displayctrl resolution set 1 2560 1440
 
 # Save current setup as a named configuration
-displayctl config save ipad
+displayctrl config save ipad
 
 # Apply a saved configuration
-displayctl config apply ipad
+displayctrl config apply ipad
 
 # List all saved configurations
-displayctl config list
+displayctrl config list
 
 # Show details of a configuration
-displayctl config show ipad
+displayctrl config show ipad
 
 # Delete a configuration
-displayctl config delete ipad
+displayctrl config delete ipad
 
 # Create sample configuration file
-displayctl config init
+displayctrl config init
 
 # Show configuration file path
-displayctl config path
+displayctrl config path
 ```
 
 ### Named Configurations
@@ -164,29 +164,29 @@ Available intents for use in Apple Shortcuts:
 ### iPad Mirroring Setup
 ```bash
 # Set to a common resolution and enable mirroring
-displayctl resolution set 0 1600 1200 60
-displayctl mirror on
-displayctl config save ipad
+displayctrl resolution set 0 1600 1200 60
+displayctrl mirror on
+displayctrl config save ipad
 
 # Later, apply it with one command
-displayctl config apply ipad
+displayctrl config apply ipad
 ```
 
 ### Presentation Mode
 ```bash
 # Set to 1080p and enable mirroring
-displayctl resolution set 0 1920 1080 60
-displayctl mirror on
-displayctl config save presentation
+displayctrl resolution set 0 1920 1080 60
+displayctrl mirror on
+displayctrl config save presentation
 ```
 
 ### Extended Desktop
 ```bash
 # Set both displays and disable mirroring
-displayctl resolution set 0 2560 1440
-displayctl resolution set 1 1920 1080
-displayctl mirror off
-displayctl config save extended
+displayctrl resolution set 0 2560 1440
+displayctrl resolution set 1 1920 1080
+displayctrl mirror off
+displayctrl config save extended
 ```
 
 ## Development
@@ -254,7 +254,7 @@ Both projects provided excellent foundational code that made this unified tool p
 Make sure you have at least one display connected. Some operations (like mirroring) require at least two displays.
 
 ### "Mode not found"
-The requested resolution may not be supported by your display. Use `displayctl list` to see available modes.
+The requested resolution may not be supported by your display. Use `displayctrl list` to see available modes.
 
 ### Permission Issues
 The tool requires permission to change display settings. You may need to grant permissions in System Settings > Privacy & Security.

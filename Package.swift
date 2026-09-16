@@ -6,23 +6,21 @@ import PackageDescription
 let package = Package(
     name: "DisplayControl",
     platforms: [
-        .macOS(.v14) // Required for Control Center widgets and modern AppIntents
+        .macOS(.v14)
     ],
     products: [
         // CLI executable
         .executable(
-            name: "displayctl",
+            name: "displayctrl",
             targets: ["DisplayControl"]
         ),
-        // Library for widget and shortcuts
+        // Core library (for future widget / shortcuts use)
         .library(
             name: "DisplayControlCore",
             targets: ["DisplayControlCore"]
         ),
     ],
-    dependencies: [
-        // No external dependencies needed - using native CoreGraphics
-    ],
+    dependencies: [],
     targets: [
         // Core library containing the display management logic
         .target(
@@ -30,39 +28,12 @@ let package = Package(
             dependencies: [],
             linkerSettings: [
                 .linkedFramework("CoreGraphics"),
-                .linkedFramework("CoreFoundation"),
-                .linkedFramework("Foundation"),
             ]
         ),
 
         // CLI executable target
         .executableTarget(
             name: "DisplayControl",
-            dependencies: ["DisplayControlCore"]
-        ),
-
-        // Widget target for Control Center
-        .target(
-            name: "DisplayControlWidget",
-            dependencies: ["DisplayControlCore"],
-            linkerSettings: [
-                .linkedFramework("WidgetKit"),
-                .linkedFramework("SwiftUI"),
-            ]
-        ),
-
-        // AppIntents for Shortcuts support
-        .target(
-            name: "DisplayControlIntents",
-            dependencies: ["DisplayControlCore"],
-            linkerSettings: [
-                .linkedFramework("AppIntents"),
-            ]
-        ),
-
-        // Tests
-        .testTarget(
-            name: "DisplayControlTests",
             dependencies: ["DisplayControlCore"]
         ),
     ]
