@@ -22,7 +22,7 @@ func printUsage() {
     - mirror-displays by Fabián Cañas (GPL-3.0)
 
     USAGE:
-        displayctl [command] [options]
+        displayctrl [command] [options]
 
     COMMANDS:
         list, ls                    List all displays and their current modes
@@ -50,19 +50,19 @@ func printUsage() {
 
     EXAMPLES:
         # List all displays
-        displayctl list
+        displayctrl list
 
         # Enable mirroring
-        displayctl mirror on
+        displayctrl mirror on
 
         # Set main display to 1920x1080 at 60Hz
-        displayctl resolution set 0 1920 1080 60
+        displayctrl resolution set 0 1920 1080 60
 
         # Save current configuration as "ipad"
-        displayctl config save ipad
+        displayctrl config save ipad
 
         # Apply the "ipad" configuration
-        displayctl config apply ipad
+        displayctrl config apply ipad
     """)
 }
 
@@ -129,7 +129,7 @@ func listDisplays() {
 func handleMirrorCommand(_ args: [String]) {
     guard args.count >= 1 else {
         print("Error: Missing mirror subcommand")
-        print("Usage: displayctl mirror [on|off|toggle|status|link]")
+        print("Usage: displayctrl mirror [on|off|toggle|status|link]")
         exit(1)
     }
 
@@ -157,7 +157,7 @@ func handleMirrorCommand(_ args: [String]) {
         case "link":
             guard args.count >= 3 else {
                 print("Error: Missing arguments for mirror link")
-                print("Usage: displayctl mirror link <slave_index> <master_index>")
+                print("Usage: displayctrl mirror link <slave_index> <master_index>")
                 exit(1)
             }
             guard let slaveIndex = UInt32(args[1]),
@@ -181,7 +181,7 @@ func handleMirrorCommand(_ args: [String]) {
 func handleResolutionCommand(_ args: [String]) {
     guard args.count >= 1 else {
         print("Error: Missing resolution subcommand")
-        print("Usage: displayctl resolution set <display> <width> <height> [refresh]")
+        print("Usage: displayctrl resolution set <display> <width> <height> [refresh]")
         exit(1)
     }
 
@@ -192,7 +192,7 @@ func handleResolutionCommand(_ args: [String]) {
 
     guard args.count >= 4 else {
         print("Error: Missing arguments for resolution set")
-        print("Usage: displayctl resolution set <display> <width> <height> [refresh]")
+        print("Usage: displayctrl resolution set <display> <width> <height> [refresh]")
         exit(1)
     }
 
@@ -222,7 +222,7 @@ func handleResolutionCommand(_ args: [String]) {
 func handleConfigCommand(_ args: [String]) {
     guard args.count >= 1 else {
         print("Error: Missing config subcommand")
-        print("Usage: displayctl config [list|show|save|apply|delete|init|path]")
+        print("Usage: displayctrl config [list|show|save|apply|delete|init|path]")
         exit(1)
     }
 
@@ -234,7 +234,7 @@ func handleConfigCommand(_ args: [String]) {
             let configs = try configManager.loadConfigurations()
             if configs.isEmpty {
                 print("No saved configurations")
-                print("Use 'displayctl config init' to create sample configurations")
+                print("Use 'displayctrl config init' to create sample configurations")
             } else {
                 print("Saved configurations:")
                 for config in configs {
@@ -341,6 +341,6 @@ case "config":
 
 default:
     print("Error: Unknown command '\(command)'")
-    print("Run 'displayctl help' for usage information")
+    print("Run 'displayctrl help' for usage information")
     exit(1)
 }

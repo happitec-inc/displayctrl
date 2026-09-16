@@ -1,0 +1,27 @@
+name: Bump Homebrew Tap
+
+# When a `vX.Y.Z` tag is pushed, open a PR on happitec-inc/homebrew-internal
+# bumping Formula/displayctrl.rb's tag + revision + sha256 to this release.
+#
+# Runs in parallel with `release.yml` on the same tag. The shared workflow
+# downloads the signed release asset (published by `release.yml`) to
+# recompute the sha256, so it waits (polls) for the asset to appear if the
+# release job hasn't finished yet.
+#
+# `formula: displayctrl` is required because the formula name differs from
+# this repo's name (remote-screen).
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions: {}
+
+jobs:
+  bump:
+    uses: happitec-inc/shared-actions/.github/workflows/bump-tap-formula.yml@main
+    secrets: inherit
+    with:
+      runner: ${{ vars.RUNNER_LINUX }}
+      formula: displayctrl
