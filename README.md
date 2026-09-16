@@ -33,7 +33,7 @@ This project combines and modernizes two existing open-source utilities:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/DisplayControl.git
+git clone https://github.com/yourusername/displayctrl.git
 cd DisplayControl
 
 # Build the package
