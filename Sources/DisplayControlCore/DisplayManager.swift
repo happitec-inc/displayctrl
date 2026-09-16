@@ -19,12 +19,12 @@ public class DisplayManager {
 
     // MARK: - Display Information
 
-    /// Get all active displays
+    /// Get all online displays (including mirrors/slaves)
     public func getDisplays() throws -> [DisplayInfo] {
         var displayIDs = [CGDirectDisplayID](repeating: 0, count: Int(maxDisplays))
         var displayCount: UInt32 = 0
 
-        let error = CGGetActiveDisplayList(maxDisplays, &displayIDs, &displayCount)
+        let error = CGGetOnlineDisplayList(maxDisplays, &displayIDs, &displayCount)
         guard error == .success else {
             throw DisplayError.configurationFailed(error)
         }
@@ -89,10 +89,14 @@ public class DisplayManager {
 
     // MARK: - Mirroring (from mirror-displays)
 
-    /// Check if displays are currently mirrored
+    /// Check if any display is currently in a mirror set
     public func isMirrored() -> Bool {
-        // CGDisplayIsInMirrorSet returns boolean_t (Int32), not Bool
-        return CGDisplayIsInMirrorSet(CGMainDisplayID()) != 0
+        do {
+            let displays = try getDisplays()
+            return displays.contains { $0.isMirrored }
+        } catch {
+            return CGDisplayIsInMirrorSet(CGMainDisplayID()) != 0
+        }
     }
 
     /// Enable mirroring for all secondary displays to the main display

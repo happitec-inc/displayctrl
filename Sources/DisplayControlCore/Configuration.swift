@@ -165,8 +165,14 @@ public class ConfigurationManager {
         )
     }
 
-    /// Create a sample configuration file with examples
-    public func createSampleConfiguration() throws {
+    /// Create a sample configuration file with examples.
+    /// If force is false and configurations already exist, throws ConfigurationError.alreadyExists.
+    public func createSampleConfiguration(force: Bool = false) throws {
+        let existing = (try? loadConfigurations()) ?? []
+        if !existing.isEmpty && !force {
+            throw ConfigurationError.alreadyExists
+        }
+
         let sampleConfigs = [
             DisplayConfiguration(
                 name: "ipad",
@@ -212,13 +218,19 @@ public class ConfigurationManager {
             )
         ]
 
-        try saveConfigurations(sampleConfigs)
+        if force {
+            try saveConfigurations(sampleConfigs)
+        } else {
+            // If file doesn't exist or is empty, save sample configs
+            try saveConfigurations(sampleConfigs)
+        }
     }
 }
 
 public enum ConfigurationError: Error, LocalizedError {
     case notFound(String)
     case invalidFormat
+    case alreadyExists
 
     public var errorDescription: String? {
         switch self {
@@ -226,6 +238,8 @@ public enum ConfigurationError: Error, LocalizedError {
             return "Configuration '\(name)' not found"
         case .invalidFormat:
             return "Invalid configuration format"
+        case .alreadyExists:
+            return "Configuration file already exists and contains profiles. Use --force to overwrite."
         }
     }
 }
