@@ -21,16 +21,23 @@ A macOS CLI for managing display mirroring and resolution settings. Combines and
 
 ## Installation
 
-### Homebrew (internal tap)
+### Homebrew
 
 ```bash
-brew install happitec-inc/internal/displayctrl
+brew install happitec-inc/tap/displayctrl
+```
+
+Or tap first:
+
+```bash
+brew tap happitec-inc/tap
+brew install displayctrl
 ```
 
 ### Building from Source
 
 ```bash
-git clone git@github.com:happitec-inc/displayctrl.git
+git clone https://github.com/happitec-inc/displayctrl.git
 cd displayctrl
 
 swift build -c release

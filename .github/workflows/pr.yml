@@ -17,7 +17,9 @@ permissions:
 jobs:
   test:
     name: Swift build and test
-    uses: happitec-inc/shared-actions/.github/workflows/swift-test.yml@main
+    uses: happitec-inc/public-actions/.github/workflows/swift-test.yml@main
+    permissions:
+      contents: read
     with:
-      runner: ${{ vars.RUNNER_MACOS }}
+      runner: ${{ vars.RUNNER_MACOS || '["macos-26"]' }}
       # No private SPM dependencies — HAPPITEC_READ_ONLY_PAT not needed.

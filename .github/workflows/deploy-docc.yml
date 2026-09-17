@@ -13,19 +13,18 @@ permissions:
 
 concurrency:
   group: "pages"
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   docs:
-    uses: happitec-inc/shared-actions/.github/workflows/deploy-docc.yml@main
+    uses: happitec-inc/public-actions/.github/workflows/deploy-docc.yml@main
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     with:
       target: DisplayControlCore
       hosting-base-path: displayctrl
-      runner: ${{ vars.RUNNER_MACOS }}
-      og-secondary-text: DisplayControlCore
+      runner: ${{ vars.RUNNER_MACOS || '["macos-26"]' }}
       og-title: "DisplayControlCore — Documentation"
       og-description: "Programmatic display resolution, refresh rate management, and multi-monitor mirroring configuration on macOS."
-    secrets:
-      HAPPITEC_READ_ONLY_PAT: ${{ secrets.HAPPITEC_READ_ONLY_PAT }}
-      GH_COMPUTER_APP_ID: ${{ secrets.GH_COMPUTER_APP_ID }}
-      GH_COMPUTER_PRIVATE_KEY: ${{ secrets.GH_COMPUTER_PRIVATE_KEY }}
