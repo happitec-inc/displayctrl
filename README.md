@@ -17,7 +17,7 @@ A macOS CLI for managing display mirroring and resolution settings. Combines and
 ## Requirements
 
 - macOS 14.0 or later
-- Swift 5.9 or later (for building from source)
+- Swift 6.3 or later (for building from source)
 
 ## Installation
 
@@ -79,8 +79,9 @@ displayctrl config show ipad
 # Delete a configuration
 displayctrl config delete ipad
 
-# Create sample configuration file
+# Create sample configuration file (use --force to overwrite existing)
 displayctrl config init
+displayctrl config init --force
 
 # Show configuration file path
 displayctrl config path

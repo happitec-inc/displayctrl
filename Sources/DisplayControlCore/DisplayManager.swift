@@ -9,7 +9,7 @@ import Foundation
 import CoreGraphics
 
 /// Main interface for managing displays
-public class DisplayManager {
+public final class DisplayManager: @unchecked Sendable {
     public static let shared = DisplayManager()
 
     private let maxDisplays: UInt32 = 32
