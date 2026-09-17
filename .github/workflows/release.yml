@@ -48,7 +48,7 @@ jobs:
       target: displayctrl
       output-name: displayctrl
       development-team: "42829SPC36"
-      signing-identifier: com.happitec.displayctrl
+      signing-identifier: com.erinsparling.happitec.displayctrl
       notarize: true
 
   publish:
