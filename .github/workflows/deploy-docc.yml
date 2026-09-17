@@ -26,5 +26,7 @@ jobs:
       target: DisplayControlCore
       hosting-base-path: displayctrl
       runner: ${{ vars.RUNNER_MACOS || '["macos-26"]' }}
+      docc-render-repo: happitec-inc/swift-docc-render
+      docc-render-ref: feature/mermaid-diagrams
       og-title: "DisplayControlCore — Documentation"
       og-description: "Programmatic display resolution, refresh rate management, and multi-monitor mirroring configuration on macOS."
