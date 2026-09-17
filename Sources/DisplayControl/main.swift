@@ -10,7 +10,7 @@
 import Foundation
 import DisplayControlCore
 
-let version = "1.0.0"
+let version = "0.1.0"
 
 func printUsage() {
     print("""
