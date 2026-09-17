@@ -54,23 +54,22 @@ public struct DisplayConfiguration: Codable, Equatable {
 }
 
 /// Manages display configuration files
-public class ConfigurationManager {
+public final class ConfigurationManager: @unchecked Sendable {
     public static let shared = ConfigurationManager()
 
-    private let configDirectory: URL
-    private let configFileName = "displayconfigs.json"
+    public let configFileURL: URL
 
-    private init() {
-        // Use Application Support directory
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        configDirectory = appSupport.appendingPathComponent("DisplayControl", isDirectory: true)
-
-        // Create directory if it doesn't exist
-        try? FileManager.default.createDirectory(at: configDirectory, withIntermediateDirectories: true)
-    }
-
-    public var configFileURL: URL {
-        return configDirectory.appendingPathComponent(configFileName)
+    public init(configFileURL: URL? = nil) {
+        if let fileURL = configFileURL {
+            self.configFileURL = fileURL
+            try? FileManager.default.createDirectory(at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        } else {
+            // Use Application Support directory
+            let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+            let configDirectory = appSupport.appendingPathComponent("DisplayControl", isDirectory: true)
+            self.configFileURL = configDirectory.appendingPathComponent("displayconfigs.json")
+            try? FileManager.default.createDirectory(at: configDirectory, withIntermediateDirectories: true)
+        }
     }
 
     /// Load all configurations from file
