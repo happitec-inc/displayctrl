@@ -196,11 +196,11 @@ If a saved configuration doesn't work after hardware changes, recreate it with t
 ## Documentation
 
 Full API documentation for `DisplayControlCore` is hosted via GitHub Pages:
-- [DisplayControlCore Documentation](https://happitec-inc.github.io/displayctrl/documentation/displaycontrolcore/)
+- [DisplayControlCore Documentation](https://docs.happitec.com/displayctrl/documentation/displaycontrolcore/)
 
 Topic articles:
-- [Introduction to DisplayControl](https://happitec-inc.github.io/displayctrl/documentation/displaycontrolcore/introduction)
-- [Managing Display Configurations](https://happitec-inc.github.io/displayctrl/documentation/displaycontrolcore/managingdisplayconfigurations)
+- [Introduction to DisplayControl](https://docs.happitec.com/displayctrl/documentation/displaycontrolcore/introduction)
+- [Managing Display Configurations](https://docs.happitec.com/displayctrl/documentation/displaycontrolcore/managingdisplayconfigurations)
 
 ## License
 
