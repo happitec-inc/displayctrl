@@ -44,9 +44,8 @@ jobs:
     with:
       runner: ${{ vars.RUNNER_MACOS }}
       package-path: .
-      # SPM executableTarget name (DisplayControl); the product binary is
-      # named `displayctrl` via the Package.swift `name:` override.
-      target: DisplayControl
+      # SPM executable product binary name in .build/<arch>/release/
+      target: displayctrl
       output-name: displayctrl
       development-team: "42829SPC36"
       signing-identifier: com.happitec.displayctrl
