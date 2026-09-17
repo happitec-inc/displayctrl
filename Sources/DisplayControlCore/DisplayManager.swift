@@ -8,18 +8,34 @@
 import Foundation
 import CoreGraphics
 
-/// Main interface for managing displays
+/// Central manager for querying displays, modifying resolutions, and configuring display mirroring on macOS.
+///
+/// `DisplayManager` wraps low-level CoreGraphics display configuration APIs (`CGDisplay`, `CGConfigureDisplayMirrorOfDisplay`,
+/// and `CGConfigureDisplayWithDisplayMode`) with safe Swift abstractions, memory-managed opaque CoreFoundation bridging,
+/// and full support for multi-monitor mirror topologies.
 public final class DisplayManager: @unchecked Sendable {
+    /// Shared singleton instance of `DisplayManager`.
     public static let shared = DisplayManager()
 
+    /// Maximum number of displays supported for enumeration.
     private let maxDisplays: UInt32 = 32
+
+    /// Tolerance in Hertz used when comparing requested and actual refresh rates.
     private let refreshTolerance: Double = 0.005
 
     private init() {}
 
     // MARK: - Display Information
 
-    /// Get all online displays (including mirrors/slaves)
+    /// Retrieves a list of all online displays connected to the system, including mirror slaves.
+    ///
+    /// Unlike `CGGetActiveDisplayList`, which omits displays operating as mirror slaves, this method
+    /// uses `CGGetOnlineDisplayList` to ensure every attached physical or virtual display is enumerated.
+    ///
+    /// - Returns: An array of ``DisplayInfo`` objects representing all online displays, each populated
+    ///   with current mode, supported modes (sorted descending by resolution and refresh rate), and mirror relationships.
+    /// - Throws: ``DisplayError/configurationFailed(_:)`` if CoreGraphics cannot query displays,
+    ///   or ``DisplayError/noDisplays`` if no displays are online.
     public func getDisplays() throws -> [DisplayInfo] {
         var displayIDs = [CGDirectDisplayID](repeating: 0, count: Int(maxDisplays))
         var displayCount: UInt32 = 0
@@ -88,7 +104,11 @@ public final class DisplayManager: @unchecked Sendable {
         return displays
     }
 
-    /// Get a specific display by index
+    /// Retrieves information for a specific display identified by its zero-based enumeration index.
+    ///
+    /// - Parameter index: The zero-based display index (where 0 corresponds to the main display).
+    /// - Returns: A tuple containing the CoreGraphics display identifier (`id`) and detailed ``DisplayInfo``.
+    /// - Throws: ``DisplayError/displayNotFound(index:)`` if no online display matches the specified index.
     public func getDisplay(at index: UInt32) throws -> (id: CGDirectDisplayID, info: DisplayInfo) {
         let displays = try getDisplays()
         guard let display = displays.first(where: { $0.index == index }) else {
@@ -99,7 +119,12 @@ public final class DisplayManager: @unchecked Sendable {
 
     // MARK: - Mirroring (from mirror-displays)
 
-    /// Check if any display is currently in a mirror set
+    /// Checks whether any online display on the system is currently participating in a mirror set.
+    ///
+    /// This method checks all online displays, correctly detecting mirroring even if the primary
+    /// main display is not the mirror master.
+    ///
+    /// - Returns: `true` if any display is in a mirror set; otherwise `false`.
     public func isMirrored() -> Bool {
         do {
             let displays = try getDisplays()
@@ -109,7 +134,13 @@ public final class DisplayManager: @unchecked Sendable {
         }
     }
 
-    /// Enable mirroring for all secondary displays to the main display
+    /// Enables mirroring for all secondary displays to the main display.
+    ///
+    /// Every non-main online display is configured to mirror the main display (`CGMainDisplayID()`),
+    /// creating a complete hardware mirror set.
+    ///
+    /// - Throws: ``DisplayError/noDisplays`` if fewer than 2 displays are online, or
+    ///   ``DisplayError/configurationFailed(_:)`` if the CoreGraphics configuration transaction fails.
     public func enableMirroring() throws {
         let displays = try getDisplays()
         guard displays.count >= 2 else {
@@ -142,7 +173,12 @@ public final class DisplayManager: @unchecked Sendable {
         }
     }
 
-    /// Disable mirroring for all displays
+    /// Disables mirroring across all displays, restoring extended desktop layout.
+    ///
+    /// Configures all mirrored secondary displays to detach from their mirror masters.
+    ///
+    /// - Throws: ``DisplayError/noDisplays`` if fewer than 2 displays are connected, or
+    ///   ``DisplayError/configurationFailed(_:)`` if unmirroring cannot be applied.
     public func disableMirroring() throws {
         let displays = try getDisplays()
         guard displays.count >= 2 else {
@@ -176,7 +212,11 @@ public final class DisplayManager: @unchecked Sendable {
         }
     }
 
-    /// Toggle mirroring state
+    /// Toggles the global mirroring state on or off.
+    ///
+    /// If mirroring is active on any display, calls ``disableMirroring()``; otherwise calls ``enableMirroring()``.
+    ///
+    /// - Throws: ``DisplayError`` if display querying or configuration fails.
     public func toggleMirroring() throws {
         if isMirrored() {
             try disableMirroring()
@@ -185,7 +225,13 @@ public final class DisplayManager: @unchecked Sendable {
         }
     }
 
-    /// Mirror a specific display to another
+    /// Configures a specific slave display to mirror a designated master display by index.
+    ///
+    /// - Parameters:
+    ///   - slaveIndex: Zero-based index of the display that should mirror the master.
+    ///   - masterIndex: Zero-based index of the display to be mirrored.
+    /// - Throws: ``DisplayError/displayNotFound(index:)`` if either display index is invalid, or
+    ///   ``DisplayError/configurationFailed(_:)`` if applying the mirror link fails.
     public func mirrorDisplay(slave slaveIndex: UInt32, to masterIndex: UInt32) throws {
         let displays = try getDisplays()
 
@@ -215,7 +261,12 @@ public final class DisplayManager: @unchecked Sendable {
         }
     }
 
-    /// Mirror a specific display to another by display ID
+    /// Configures a specific slave display to mirror a designated master display using CoreGraphics display IDs directly.
+    ///
+    /// - Parameters:
+    ///   - slaveID: The `CGDirectDisplayID` of the display that should mirror.
+    ///   - masterID: The `CGDirectDisplayID` of the display to mirror.
+    /// - Throws: ``DisplayError/configurationFailed(_:)`` if the configuration transaction fails.
     public func mirrorDisplayIDs(slave slaveID: CGDirectDisplayID, to masterID: CGDirectDisplayID) throws {
         var config: CGDisplayConfigRef?
         var error = CGBeginDisplayConfiguration(&config)
@@ -237,7 +288,19 @@ public final class DisplayManager: @unchecked Sendable {
 
     // MARK: - Resolution Management (from displaymode)
 
-    /// Set the display mode for a specific display
+    /// Sets the display resolution and optional refresh rate for a designated display.
+    ///
+    /// When `refreshRate` is omitted or set to `nil`, `DisplayManager` automatically selects the
+    /// highest available refresh rate matching the target resolution.
+    ///
+    /// - Parameters:
+    ///   - displayIndex: Zero-based index of the target display.
+    ///   - width: Desired horizontal pixel resolution.
+    ///   - height: Desired vertical pixel resolution.
+    ///   - refreshRate: Optional target vertical refresh rate in Hz. If `nil`, the highest available rate is used.
+    /// - Throws: ``DisplayError/displayNotFound(index:)`` if the display index is invalid,
+    ///   ``DisplayError/modeNotFound(width:height:refreshRate:)`` if no supported mode matches,
+    ///   or ``DisplayError/configurationFailed(_:)`` if CoreGraphics cannot switch to the mode.
     public func setMode(displayIndex: UInt32, width: Int, height: Int, refreshRate: Double? = nil) throws {
         let (displayID, displayInfo) = try getDisplay(at: displayIndex)
 

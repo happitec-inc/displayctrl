@@ -20,7 +20,9 @@ let package = Package(
             targets: ["DisplayControlCore"]
         ),
     ],
-    dependencies: [],
+    dependencies: [
+        .package(url: "https://github.com/swiftlang/swift-docc-plugin", from: "1.4.3"),
+    ],
     targets: [
         // Core library containing the display management logic
         .target(

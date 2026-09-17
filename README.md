@@ -193,6 +193,15 @@ The tool requires permission to change display settings. You may need to grant a
 ### Configuration Not Applying
 If a saved configuration doesn't work after hardware changes, recreate it with the new display setup.
 
+## Documentation
+
+Full API documentation for `DisplayControlCore` is hosted via GitHub Pages:
+- [DisplayControlCore Documentation](https://happitec-inc.github.io/displayctrl/documentation/displaycontrolcore/)
+
+Topic articles:
+- [Introduction to DisplayControl](https://happitec-inc.github.io/displayctrl/documentation/displaycontrolcore/introduction)
+- [Managing Display Configurations](https://happitec-inc.github.io/displayctrl/documentation/displaycontrolcore/managingdisplayconfigurations)
+
 ## License
 
 This project is licensed under the GNU General Public License v3.0 or later (GPL-3.0-or-later), due to incorporating code from [mirror-displays](https://github.com/fcanas/mirror-displays) which is GPL-3.0. The GPL requires derivative works to use the same license.
