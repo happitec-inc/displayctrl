@@ -1,5 +1,5 @@
 // DisplayControlApp.swift
-// Main SwiftUI App with native MenuBarExtra switcher and Preset Manager GUI
+// Native macOS Preset Manager GUI Application
 //
 // Part of DisplayControl
 // Licensed under GPL-3.0
@@ -10,7 +10,12 @@ import DisplayControlUI
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.accessory)
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        return true
     }
 }
 
@@ -22,9 +27,18 @@ public struct DisplayControlApp: App {
     public init() {}
 
     public var body: some Scene {
-        MenuBarExtra("DisplayControl", systemImage: store.menuBarIconName) {
-            MenuBarContentView(store: store)
+        Window("DisplayControl Presets", id: "preset-manager") {
+            PresetManagerView(store: store)
         }
-        .menuBarExtraStyle(.menu)
+        .windowToolbarStyle(.unified)
+        .commands {
+            SidebarCommands()
+            CommandGroup(replacing: .newItem) {
+                Button("New Preset...") {
+                    NotificationCenter.default.post(name: Notification.Name("DisplayControlNewPreset"), object: nil)
+                }
+                .keyboardShortcut("n", modifiers: .command)
+            }
+        }
     }
 }
