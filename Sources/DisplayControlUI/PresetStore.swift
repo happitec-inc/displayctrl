@@ -97,12 +97,15 @@ public final class PresetStore: ObservableObject {
 
         // Check each display configured in the preset
         for displayConfig in preset.displays {
-            guard let liveDisplay = onlineDisplays.first(where: {
-                if let serial = displayConfig.serialNumber, $0.serialNumber == serial {
-                    return true
-                }
-                return $0.index == displayConfig.index
-            }), let currentMode = liveDisplay.currentMode else {
+            let matchedDisplay: DisplayInfo?
+            if let serial = displayConfig.serialNumber,
+               let bySerial = onlineDisplays.first(where: { $0.serialNumber == serial }) {
+                matchedDisplay = bySerial
+            } else {
+                matchedDisplay = onlineDisplays.first(where: { $0.index == displayConfig.index })
+            }
+
+            guard let liveDisplay = matchedDisplay, let currentMode = liveDisplay.currentMode else {
                 return false
             }
 
@@ -111,6 +114,11 @@ public final class PresetStore: ObservableObject {
             }
             if let targetHeight = displayConfig.height, targetHeight != currentMode.height {
                 return false
+            }
+            if let targetRefresh = displayConfig.refreshRate {
+                if abs(targetRefresh - currentMode.refreshRate) >= 0.5 {
+                    return false
+                }
             }
         }
 
@@ -155,8 +163,8 @@ public final class PresetStore: ObservableObject {
         }
     }
 
-    /// Saves or updates a preset.
-    public func save(preset: DisplayConfiguration) -> Bool {
+    /// Saves or updates a preset, handling rename if oldName is specified.
+    public func save(preset: DisplayConfiguration, renamingFrom oldName: String? = nil) -> Bool {
         let trimmed = preset.name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             self.errorMessage = "Preset name cannot be empty"
@@ -164,6 +172,9 @@ public final class PresetStore: ObservableObject {
         }
 
         do {
+            if let oldName = oldName, oldName.lowercased() != trimmed.lowercased() {
+                try ConfigurationManager.shared.deleteConfiguration(named: oldName)
+            }
             try ConfigurationManager.shared.saveConfiguration(preset)
             self.errorMessage = nil
             self.successMessage = "Saved preset '\(preset.name)'"

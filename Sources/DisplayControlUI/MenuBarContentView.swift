@@ -49,6 +49,9 @@ public struct MenuBarContentView: View {
                 NSApp.terminate(nil)
             }
         }
+        .onAppear {
+            store.load()
+        }
     }
 }
 

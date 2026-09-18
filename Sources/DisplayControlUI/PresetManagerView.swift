@@ -232,10 +232,17 @@ public struct PresetManagerView: View {
     private var detailView: some View {
         if let selectedName = selectedPresetName,
            let preset = store.presets.first(where: { $0.name == selectedName }) {
-            PresetEditorView(preset: preset, store: store) {
-                presetToDelete = preset
-                showingDeleteAlert = true
-            }
+            PresetEditorView(
+                preset: preset,
+                store: store,
+                onRename: { newName in
+                    selectedPresetName = newName
+                },
+                onDelete: {
+                    presetToDelete = preset
+                    showingDeleteAlert = true
+                }
+            )
         } else {
             emptyDetailView
         }
@@ -409,6 +416,7 @@ public struct PresetManagerView: View {
 private struct PresetEditorView: View {
     let preset: DisplayConfiguration
     @ObservedObject var store: PresetStore
+    var onRename: ((String) -> Void)?
     let onDelete: () -> Void
 
     @State private var editedName: String = ""
@@ -518,8 +526,9 @@ private struct PresetEditorView: View {
                 // Save & Delete Actions
                 HStack(spacing: 12) {
                     Button {
-                        if store.save(preset: currentEditedPreset) {
+                        if store.save(preset: currentEditedPreset, renamingFrom: preset.name) {
                             isDirty = false
+                            onRename?(currentEditedPreset.name)
                         }
                     } label: {
                         Text("Save Changes")
@@ -599,10 +608,34 @@ private struct PresetEditorView: View {
 
     @ViewBuilder
     private func displayRow(index: Int, config: DisplayConfiguration.DisplayConfig) -> some View {
-        let liveDisplay = store.onlineDisplays.first(where: {
-            if let serial = config.serialNumber, $0.serialNumber == serial { return true }
-            return $0.index == config.index
-        })
+        let liveDisplay: DisplayInfo? = {
+            if let serial = config.serialNumber,
+               let bySerial = store.onlineDisplays.first(where: { $0.serialNumber == serial }) {
+                return bySerial
+            }
+            return store.onlineDisplays.first(where: { $0.index == config.index })
+        }()
+
+        let availableRefreshRates: [Double] = {
+            let supported: [Double]
+            if let live = liveDisplay, let w = config.width, let h = config.height {
+                let matchingModes = live.availableModes.filter { $0.width == w && $0.height == h }
+                let rates = Set(matchingModes.map { $0.refreshRate }).sorted()
+                supported = rates.isEmpty ? [60.0, 120.0, 144.0] : rates
+            } else if let live = liveDisplay {
+                let rates = Set(live.availableModes.map { $0.refreshRate }).sorted()
+                supported = rates.isEmpty ? [60.0, 120.0, 144.0] : rates
+            } else {
+                supported = [60.0, 120.0, 144.0]
+            }
+
+            var result = supported
+            if let current = config.refreshRate, !result.contains(where: { abs($0 - current) < 0.05 }) {
+                result.append(current)
+                result.sort()
+            }
+            return result
+        }()
 
         VStack(alignment: .leading, spacing: 10) {
             HStack {
@@ -679,32 +712,34 @@ private struct PresetEditorView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
-                    let currentRate = config.refreshRate != nil ? "\(Int(config.refreshRate!)) Hz" : "Auto / Default"
-
-                    Picker("", selection: Binding(
-                        get: { currentRate },
-                        set: { (newVal: String) in
+                    Picker("", selection: Binding<Double?>(
+                        get: { config.refreshRate },
+                        set: { (newVal: Double?) in
                             isDirty = true
-                            if newVal == "Auto / Default" {
-                                updateDisplayConfig(at: index, refreshRate: nil)
-                            } else if let val = Double(newVal.replacingOccurrences(of: " Hz", with: "")) {
-                                updateDisplayConfig(at: index, refreshRate: val)
-                            }
+                            updateDisplayConfig(at: index, refreshRate: .some(newVal))
                         }
                     )) {
-                        Text("Auto / Default").tag("Auto / Default")
-                        Text("60 Hz").tag("60 Hz")
-                        Text("120 Hz").tag("120 Hz")
-                        Text("144 Hz").tag("144 Hz")
+                        Text("Auto / Default").tag(nil as Double?)
+                        ForEach(availableRefreshRates, id: \.self) { rate in
+                            Text(formatRate(rate)).tag(rate as Double?)
+                        }
                     }
                     .labelsHidden()
-                    .frame(width: 120)
+                    .frame(width: 130)
                 }
             }
         }
         .padding(12)
         .background(Color(NSColor.textBackgroundColor))
         .cornerRadius(8)
+    }
+
+    private func formatRate(_ rate: Double) -> String {
+        if rate.truncatingRemainder(dividingBy: 1) == 0 {
+            return "\(Int(rate)) Hz"
+        } else {
+            return String(format: "%.2f Hz", rate)
+        }
     }
 
     private func updateDisplayConfig(at index: Int, width: Int? = -1, height: Int? = -1, refreshRate: Double?? = nil) {
