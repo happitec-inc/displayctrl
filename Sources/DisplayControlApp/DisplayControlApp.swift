@@ -22,7 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 @main
 public struct DisplayControlApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @StateObject private var store = PresetStore()
+    @State private var store = PresetStore()
 
     public init() {}
 

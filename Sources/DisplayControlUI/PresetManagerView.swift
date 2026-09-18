@@ -8,7 +8,7 @@ import SwiftUI
 import DisplayControlCore
 
 public struct PresetManagerView: View {
-    @ObservedObject public var store: PresetStore
+    public var store: PresetStore
 
     @AppStorage("displaycontrol_sidebar_state") private var storedSidebarState: String = "unset"
     @State private var columnVisibility: NavigationSplitViewVisibility = .detailOnly
@@ -79,11 +79,15 @@ public struct PresetManagerView: View {
                 storedSidebarState = (newVisibility == .detailOnly ? "closed" : "open")
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("DisplayControlToggleSidebar"))) { _ in
-            toggleSidebar()
+        .task {
+            for await _ in NotificationCenter.default.notifications(named: Notification.Name("DisplayControlToggleSidebar")) {
+                toggleSidebar()
+            }
         }
-        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("DisplayControlNewPreset"))) { _ in
-            showingNewPresetSheet = true
+        .task {
+            for await _ in NotificationCenter.default.notifications(named: Notification.Name("DisplayControlNewPreset")) {
+                showingNewPresetSheet = true
+            }
         }
     }
 
@@ -424,7 +428,7 @@ public struct PresetManagerView: View {
 
 private struct PresetEditorView: View {
     let preset: DisplayConfiguration
-    @ObservedObject var store: PresetStore
+    var store: PresetStore
     var onRename: ((String) -> Void)?
     let onDelete: () -> Void
 

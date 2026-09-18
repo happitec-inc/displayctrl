@@ -8,7 +8,7 @@ import SwiftUI
 import DisplayControlCore
 
 public struct MenuBarContentView: View {
-    @ObservedObject public var store: PresetStore
+    public var store: PresetStore
 
     public init(store: PresetStore) {
         self.store = store
@@ -61,7 +61,7 @@ public struct MenuBarContentView: View {
 
 #if DEBUG
 struct MenuPreviewCard: View {
-    @ObservedObject var store: PresetStore
+    var store: PresetStore
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {

@@ -6,18 +6,20 @@
 
 import Foundation
 import CoreGraphics
+import Observation
 import DisplayControlCore
 
+@Observable
 @MainActor
-public final class PresetStore: ObservableObject {
-    @Published public var presets: [DisplayConfiguration] = []
-    @Published public var onlineDisplays: [DisplayInfo] = []
-    @Published public var isMirrored: Bool = false
-    @Published public var activePresetName: String? = nil
-    @Published public var errorMessage: String? = nil
-    @Published public var successMessage: String? = nil
+public final class PresetStore {
+    public var presets: [DisplayConfiguration] = []
+    public var onlineDisplays: [DisplayInfo] = []
+    public var isMirrored: Bool = false
+    public var activePresetName: String? = nil
+    public var errorMessage: String? = nil
+    public var successMessage: String? = nil
 
-    private var reconfigurationCallbackRegistered = false
+    @ObservationIgnored private var reconfigurationCallbackRegistered = false
 
     public init(
         presets: [DisplayConfiguration]? = nil,
@@ -137,9 +139,10 @@ public final class PresetStore: ObservableObject {
             self.errorMessage = nil
             self.successMessage = "Applied preset '\(preset.name)'"
             // Re-query after display mode changes settle
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                self?.refreshDisplays()
-                self?.updateActivePreset()
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(500))
+                self.refreshDisplays()
+                self.updateActivePreset()
             }
         } catch {
             self.errorMessage = "Failed to apply '\(preset.name)': \(error.localizedDescription)"
@@ -253,7 +256,7 @@ private func presetStoreDisplayReconfigurationCallback(
     guard let userInfo = userInfo else { return }
     if flags.contains(.desktopShapeChangedFlag) || flags.contains(.setModeFlag) || flags.contains(.addFlag) || flags.contains(.removeFlag) {
         let store = Unmanaged<PresetStore>.fromOpaque(userInfo).takeUnretainedValue()
-        DispatchQueue.main.async {
+        Task { @MainActor in
             store.load()
         }
     }

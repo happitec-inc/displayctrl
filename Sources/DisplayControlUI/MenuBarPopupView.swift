@@ -8,7 +8,7 @@ import SwiftUI
 import DisplayControlCore
 
 public struct MenuBarPopupView: View {
-    @ObservedObject public var store: PresetStore
+    public var store: PresetStore
 
     @Environment(\.dismiss) private var dismiss
 

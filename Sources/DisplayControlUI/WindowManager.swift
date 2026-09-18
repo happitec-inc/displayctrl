@@ -8,7 +8,7 @@ import AppKit
 import SwiftUI
 
 @MainActor
-public final class WindowManager: NSObject, ObservableObject, NSWindowDelegate {
+public final class WindowManager: NSObject, NSWindowDelegate {
     public static let shared = WindowManager()
 
     private var windowController: NSWindowController?

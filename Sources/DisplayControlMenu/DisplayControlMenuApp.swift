@@ -17,7 +17,7 @@ final class MenuAppDelegate: NSObject, NSApplicationDelegate {
 @main
 public struct DisplayControlMenuApp: App {
     @NSApplicationDelegateAdaptor(MenuAppDelegate.self) var appDelegate
-    @StateObject private var store = PresetStore()
+    @State private var store = PresetStore()
 
     public init() {}
 
