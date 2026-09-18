@@ -42,7 +42,16 @@ public struct PresetManagerView: View {
         } detail: {
             detailView
         }
+        .navigationSplitViewStyle(.balanced)
         .frame(minWidth: 720, minHeight: 480)
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                Button(action: toggleSidebar) {
+                    Label("Toggle Sidebar", systemImage: "sidebar.leading")
+                }
+                .help("Toggle Sidebar (⌃⌘S)")
+            }
+        }
         .sheet(isPresented: $showingNewPresetSheet) {
             newPresetSheet
         }
@@ -67,6 +76,18 @@ public struct PresetManagerView: View {
             if !isExplicitVisibility && (!store.presets.isEmpty || storedSidebarState != "unset") {
                 storedSidebarState = (newVisibility == .detailOnly ? "closed" : "open")
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("DisplayControlToggleSidebar"))) { _ in
+            toggleSidebar()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("DisplayControlNewPreset"))) { _ in
+            showingNewPresetSheet = true
+        }
+    }
+
+    private func toggleSidebar() {
+        withAnimation(.spring(duration: 0.25)) {
+            columnVisibility = (columnVisibility == .detailOnly ? .all : .detailOnly)
         }
     }
 
