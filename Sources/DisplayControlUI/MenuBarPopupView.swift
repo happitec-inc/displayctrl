@@ -25,7 +25,7 @@ public struct MenuBarPopupView: View {
 
     private func dismissAndOpenManager() {
         dismissPopup()
-        AppHandoff.openPresetManager()
+        AppHandoff.openPresetManager(store: store)
     }
 
     private func selectPreset(_ preset: DisplayConfiguration) {

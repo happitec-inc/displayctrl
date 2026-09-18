@@ -38,7 +38,12 @@ public final class PresetStore: ObservableObject {
     }
 
     deinit {
-        // CGDisplayRemoveReconfigurationCallback takes nonisolated C function pointer
+        if reconfigurationCallbackRegistered {
+            CGDisplayRemoveReconfigurationCallback(
+                presetStoreDisplayReconfigurationCallback,
+                Unmanaged.passUnretained(self).toOpaque()
+            )
+        }
     }
 
     /// Reloads all presets from disk and updates current display status.
@@ -222,15 +227,35 @@ public final class PresetStore: ObservableObject {
         guard !reconfigurationCallbackRegistered else { return }
         reconfigurationCallbackRegistered = true
 
-        CGDisplayRegisterReconfigurationCallback({ displayID, flags, userInfo in
-            if flags.contains(.desktopShapeChangedFlag) || flags.contains(.setModeFlag) || flags.contains(.addFlag) || flags.contains(.removeFlag) {
-                DispatchQueue.main.async {
-                    guard let userInfo = userInfo else { return }
-                    let store = Unmanaged<PresetStore>.fromOpaque(userInfo).takeUnretainedValue()
-                    store.load()
-                }
-            }
-        }, Unmanaged.passUnretained(self).toOpaque())
+        CGDisplayRegisterReconfigurationCallback(
+            presetStoreDisplayReconfigurationCallback,
+            Unmanaged.passUnretained(self).toOpaque()
+        )
+    }
+
+    public func unregisterDisplayReconfigurationCallback() {
+        guard reconfigurationCallbackRegistered else { return }
+        reconfigurationCallbackRegistered = false
+        CGDisplayRemoveReconfigurationCallback(
+            presetStoreDisplayReconfigurationCallback,
+            Unmanaged.passUnretained(self).toOpaque()
+        )
+    }
+}
+
+/// Global C-compatible display reconfiguration callback.
+/// Dispatches display configuration changes to the registered PresetStore instance on the main actor.
+private func presetStoreDisplayReconfigurationCallback(
+    displayID: CGDirectDisplayID,
+    flags: CGDisplayChangeSummaryFlags,
+    userInfo: UnsafeMutableRawPointer?
+) {
+    guard let userInfo = userInfo else { return }
+    if flags.contains(.desktopShapeChangedFlag) || flags.contains(.setModeFlag) || flags.contains(.addFlag) || flags.contains(.removeFlag) {
+        let store = Unmanaged<PresetStore>.fromOpaque(userInfo).takeUnretainedValue()
+        DispatchQueue.main.async {
+            store.load()
+        }
     }
 }
 

@@ -19,7 +19,7 @@ public struct MenuBarContentView: View {
             if store.presets.isEmpty {
                 // Empty state: primary CTA to define presets (styled like GUI blank slate)
                 Button {
-                    WindowManager.shared.showPresetManager(store: store)
+                    AppHandoff.openPresetManager(store: store)
                 } label: {
                     Label("Define Presets...", systemImage: "display.2")
                 }
@@ -29,7 +29,11 @@ public struct MenuBarContentView: View {
                 ForEach(store.presets, id: \.name) { preset in
                     Toggle(isOn: Binding(
                         get: { store.activePresetName?.lowercased() == preset.name.lowercased() },
-                        set: { _ in store.apply(preset: preset) }
+                        set: { isSelected in
+                            if isSelected {
+                                store.apply(preset: preset)
+                            }
+                        }
                     )) {
                         Text(preset.name)
                     }
@@ -40,7 +44,7 @@ public struct MenuBarContentView: View {
 
             // Always present: Manage presets brings up the GUI (no keyboard shortcuts)
             Button("Manage Presets...") {
-                WindowManager.shared.showPresetManager(store: store)
+                AppHandoff.openPresetManager(store: store)
             }
 
             Divider()
