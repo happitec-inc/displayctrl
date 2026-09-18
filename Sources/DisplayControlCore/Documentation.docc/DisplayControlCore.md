@@ -1,6 +1,11 @@
 # ``DisplayControlCore``
 
-A unified macOS CLI and Swift library for managing display resolution, refresh rates, mirroring topology, and persistent multi-monitor configurations.
+@Metadata {
+    @DisplayName("displayctrl")
+    @TitleHeading("Command-Line Tool")
+}
+
+A macOS CLI for managing display mirroring, resolution, and persistent multi-monitor configurations.
 
 ## Overview
 
@@ -322,10 +327,6 @@ Because `displayctrl` is a clean, self-contained binary with deterministic exit 
 ---
 
 ## Topics
-
-### Using the App
-- [Introduction to DisplayControl](<doc:Introduction>)
-- [Managing Display Configurations](<doc:ManagingDisplayConfigurations>)
 
 ### Developer Documentation & Architecture
 - <doc:Introduction>
