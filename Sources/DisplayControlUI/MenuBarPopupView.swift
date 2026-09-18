@@ -10,8 +10,27 @@ import DisplayControlCore
 public struct MenuBarPopupView: View {
     @ObservedObject public var store: PresetStore
 
+    @Environment(\.dismiss) private var dismiss
+
     public init(store: PresetStore) {
         self.store = store
+    }
+
+    private func dismissPopup() {
+        dismiss()
+        for window in NSApp.windows where window.isVisible {
+            window.orderOut(nil)
+        }
+    }
+
+    private func dismissAndOpenManager() {
+        dismissPopup()
+        AppHandoff.openPresetManager()
+    }
+
+    private func selectPreset(_ preset: DisplayConfiguration) {
+        dismissPopup()
+        store.apply(preset: preset)
     }
 
     public var body: some View {
@@ -43,7 +62,7 @@ public struct MenuBarPopupView: View {
                         .padding(.horizontal, 8)
 
                     Button {
-                        AppHandoff.openPresetManager()
+                        dismissAndOpenManager()
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "display.2")
@@ -66,7 +85,7 @@ public struct MenuBarPopupView: View {
                     ForEach(store.presets, id: \.name) { preset in
                         let isActive = store.activePresetName?.lowercased() == preset.name.lowercased()
                         Button {
-                            store.apply(preset: preset)
+                            selectPreset(preset)
                         } label: {
                             HStack(spacing: 8) {
                                 // Reserved checkmark space: fixed width so text never shifts horizontally
@@ -95,7 +114,7 @@ public struct MenuBarPopupView: View {
 
             // Manage Presets CTA
             Button {
-                AppHandoff.openPresetManager()
+                dismissAndOpenManager()
             } label: {
                 HStack {
                     Text("Manage Presets...")

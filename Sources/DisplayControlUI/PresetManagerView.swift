@@ -45,11 +45,13 @@ public struct PresetManagerView: View {
         .navigationSplitViewStyle(.balanced)
         .frame(minWidth: 720, minHeight: 480)
         .toolbar {
-            ToolbarItem(placement: .navigation) {
-                Button(action: toggleSidebar) {
-                    Label("Toggle Sidebar", systemImage: "sidebar.leading")
+            if columnVisibility == .detailOnly {
+                ToolbarItem(placement: .navigation) {
+                    Button(action: toggleSidebar) {
+                        Label("Toggle Sidebar", systemImage: "sidebar.leading")
+                    }
+                    .help("Toggle Sidebar (⌃⌘S)")
                 }
-                .help("Toggle Sidebar (⌃⌘S)")
             }
         }
         .sheet(isPresented: $showingNewPresetSheet) {
@@ -175,10 +177,17 @@ public struct PresetManagerView: View {
                                     .foregroundStyle(.secondary)
                             }
                             Spacer()
+
+                            if isEditingPresets {
+                                Image(systemName: "line.3.horizontal")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                         .tag(preset.name)
                         .padding(.vertical, 2)
                     }
+                    .onMove(perform: store.movePresets)
                 }
                 .listStyle(.sidebar)
             }

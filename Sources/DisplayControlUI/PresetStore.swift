@@ -198,6 +198,17 @@ public final class PresetStore: ObservableObject {
         }
     }
 
+    /// Reorders presets in-memory and persists the updated ordering to disk.
+    public func movePresets(from source: IndexSet, to destination: Int) {
+        presets.move(fromOffsets: source, toOffset: destination)
+        do {
+            try ConfigurationManager.shared.saveConfigurations(presets)
+            self.errorMessage = nil
+        } catch {
+            self.errorMessage = "Failed to save reordered presets: \(error.localizedDescription)"
+        }
+    }
+
     /// Dynamic SF Symbol for menu bar based on mirroring and status.
     public var menuBarIconName: String {
         if isMirrored {

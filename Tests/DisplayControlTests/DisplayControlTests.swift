@@ -151,6 +151,28 @@ struct DisplayControlTests {
         #expect(afterDelete == nil)
     }
 
+    @Test("ConfigurationManager saveConfigurations preserves exact array ordering")
+    func saveConfigurationsOrdering() throws {
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("displayctrl-test-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: tempURL) }
+        let manager = ConfigurationManager(configFileURL: tempURL)
+
+        let c1 = DisplayConfiguration(name: "preset-a", mirroring: .disabled, displays: [])
+        let c2 = DisplayConfiguration(name: "preset-b", mirroring: .enabled, displays: [])
+        let c3 = DisplayConfiguration(name: "preset-c", mirroring: .unchanged, displays: [])
+
+        try manager.saveConfigurations([c1, c2, c3])
+        var loaded = try manager.loadConfigurations()
+        #expect(loaded.map(\.name) == ["preset-a", "preset-b", "preset-c"])
+
+        // Reorder (move last to first)
+        let moved = loaded.remove(at: 2)
+        loaded.insert(moved, at: 0)
+        try manager.saveConfigurations(loaded)
+        let reloaded = try manager.loadConfigurations()
+        #expect(reloaded.map(\.name) == ["preset-c", "preset-a", "preset-b"])
+    }
+
     @Test("createSampleConfiguration guards against overwrite unless forced")
     func sampleConfigurationGuard() throws {
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("displayctrl-test-\(UUID().uuidString).json")
