@@ -9,7 +9,7 @@ Controlling display setups programmatically on macOS has historically required s
 1. **[displaymode](https://github.com/p00ya/displaymode)** by Dean Scarff (Apache 2.0): Specialized in querying display modes and applying resolution and refresh rate configurations.
 2. **[mirror-displays](https://github.com/fcanas/mirror-displays)** by Fabián Cañas (GPL-3.0): Focused exclusively on establishing and toggling display mirror sets.
 
-While both utilities served their purposes well, each was written as an isolated C/Objective-C command-line tool, lacked hardware-stable display matching across dock reconnects, could not save multi-monitor configurations atomically, and was not consumable as a modern Swift library for higher-level applications (such as Control Center widgets, Shortcuts App Intents, or automation daemons).
+While both utilities served their purposes well, each was written as an isolated C/Objective-C command-line tool, lacked hardware-stable display matching across dock reconnects, could not save multi-monitor configurations atomically, and was not consumable as a modern Swift library for higher-level applications (such as GUI apps, menu bar extras, or automation scripts).
 
 `displayctrl` and `DisplayControlCore` unify and modernize these two capabilities into a single, cohesive Swift package designed for macOS 14.0+ and Swift 6.3.
 
