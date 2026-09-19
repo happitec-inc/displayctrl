@@ -10,21 +10,20 @@ import DisplayControlCore
 public struct PresetManagerView: View {
     public var store: PresetStore
 
+    @Environment(\.colorScheme) private var colorScheme
     @AppStorage("displaycontrol_sidebar_state") private var storedSidebarState: String = "unset"
     @State private var columnVisibility: NavigationSplitViewVisibility = .detailOnly
-    @State private var isEditingPresets = false
     @State private var selectedPresetName: String? = nil
     @State private var showingNewPresetSheet = false
-    @State private var newPresetName = ""
     @State private var showingDeleteAlert = false
     @State private var presetToDelete: DisplayConfiguration? = nil
+    @State private var focusEditorNameOnCreate = false
 
     private let isExplicitVisibility: Bool
 
     public init(
         store: PresetStore,
-        initialVisibility: NavigationSplitViewVisibility? = nil,
-        initialEditing: Bool = false
+        initialVisibility: NavigationSplitViewVisibility? = nil
     ) {
         self.store = store
         if let visibility = initialVisibility {
@@ -33,7 +32,11 @@ public struct PresetManagerView: View {
         } else {
             self.isExplicitVisibility = false
         }
-        _isEditingPresets = State(initialValue: initialEditing)
+    }
+
+    private var currentSelectedPreset: DisplayConfiguration? {
+        guard let name = selectedPresetName else { return nil }
+        return store.presets.first(where: { $0.name == name })
     }
 
     public var body: some View {
@@ -45,12 +48,43 @@ public struct PresetManagerView: View {
         .navigationSplitViewStyle(.balanced)
         .frame(minWidth: 720, minHeight: 480)
         .toolbar {
-            if columnVisibility == .detailOnly {
-                ToolbarItem(placement: .navigation) {
-                    Button(action: toggleSidebar) {
-                        Label("Toggle Sidebar", systemImage: "sidebar.leading")
+            ToolbarSpacer(.flexible)
+
+            ToolbarItem {
+                ControlGroup {
+                    if let preset = currentSelectedPreset {
+                        Button(role: .destructive) {
+                            presetToDelete = preset
+                            showingDeleteAlert = true
+                        } label: {
+                            Image(systemName: "trash")
+                                .foregroundStyle(.red)
+                        }
+                        .help("Delete Preset")
                     }
-                    .help("Toggle Sidebar (⌃⌘S)")
+
+                    Button {
+                        showingNewPresetSheet = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .help("New Preset (⌘N)")
+                }
+            }
+
+            ToolbarSpacer(.fixed)
+
+            ToolbarItem {
+                if let preset = currentSelectedPreset {
+                    let isCurrentActiveAndUnedited = store.matchesLiveSetup(preset)
+                    Button {
+                        store.apply(preset: preset)
+                    } label: {
+                        Label("Apply Preset", systemImage: "checkmark")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(isCurrentActiveAndUnedited)
+                    .help(isCurrentActiveAndUnedited ? "Preset is already active" : "Apply Preset")
                 }
             }
         }
@@ -67,10 +101,9 @@ public struct PresetManagerView: View {
             Button("Cancel", role: .cancel) {}
         } message: { preset in
             Text("Are you sure you want to delete '\(preset.name)'? This action cannot be undone.")
-        }
-        .onAppear {
+        }        .onAppear {
             if selectedPresetName == nil {
-                selectedPresetName = store.presets.first?.name
+                selectedPresetName = store.activePresetName ?? store.presets.first?.name
             }
             setupInitialSidebarVisibility()
         }
@@ -126,115 +159,56 @@ public struct PresetManagerView: View {
     private var sidebarView: some View {
         VStack(spacing: 0) {
             if store.presets.isEmpty {
-                VStack(spacing: 16) {
-                    Image(systemName: "display.2")
-                        .font(.system(size: 36))
-                        .foregroundStyle(.secondary)
-                    Text("No Presets Defined")
-                        .font(.headline)
-                    Text("Define a preset to configure your displays.")
-                        .font(.caption)
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 List(selection: $selectedPresetName) {
                     ForEach(store.presets, id: \.name) { preset in
+                        let isSelected = preset.name == selectedPresetName
                         HStack(spacing: 10) {
-                            if isEditingPresets {
-                                Button {
-                                    presetToDelete = preset
-                                    showingDeleteAlert = true
-                                } label: {
-                                    Image(systemName: "trash")
-                                        .font(.system(size: 12, weight: .semibold))
-                                        .foregroundStyle(.red)
-                                }
-                                .buttonStyle(.glass)
-                                .glassEffect()
-                                .help("Delete \(preset.name)")
-                            }
-
                             Image(systemName: presetIcon(for: preset))
-                                .foregroundStyle(preset.name == store.activePresetName ? Color.accentColor : Color.secondary)
+                                .foregroundStyle(isSelected ? .white : (preset.name == store.activePresetName ? Color.accentColor : Color.secondary))
                                 .frame(width: 20)
 
                             VStack(alignment: .leading, spacing: 3) {
-                                HStack {
+                                HStack(spacing: 6) {
                                     Text(preset.name)
                                         .font(.system(size: 13, weight: .semibold))
+                                        .foregroundStyle(isSelected ? .white : .primary)
                                     if preset.name == store.activePresetName {
-                                        Text("Active")
-                                            .font(.system(size: 9, weight: .bold))
-                                            .padding(.horizontal, 5)
-                                            .padding(.vertical, 1.5)
-                                            .background(Color.green.opacity(0.2))
-                                            .foregroundStyle(Color.green)
-                                            .clipShape(Capsule())
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 11, weight: .bold))
+                                            .foregroundStyle(isSelected ? .white : Color.accentColor)
                                     }
                                 }
 
                                 Text(presetSummary(for: preset))
                                     .font(.system(size: 11))
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(isSelected ? .white.opacity(0.8) : .secondary)
                             }
                             Spacer()
-
-                            if isEditingPresets {
-                                Image(systemName: "line.3.horizontal")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundStyle(.secondary)
-                            }
                         }
                         .tag(preset.name)
                         .padding(.vertical, 2)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                presetToDelete = preset
+                                showingDeleteAlert = true
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                presetToDelete = preset
+                                showingDeleteAlert = true
+                            } label: {
+                                Label("Delete...", systemImage: "trash")
+                            }
+                        }
                     }
                     .onMove(perform: store.movePresets)
                 }
                 .listStyle(.sidebar)
             }
-
-            Divider()
-
-            // Sidebar Bottom Actions: Edit and Define Presets...
-            HStack(spacing: 8) {
-                if isEditingPresets {
-                    Button {
-                        isEditingPresets.toggle()
-                    } label: {
-                        Text("Done")
-                            .font(.system(size: 12, weight: .medium))
-                            .frame(minWidth: 44)
-                    }
-                    .buttonStyle(.glassProminent)
-                    .glassEffect()
-                } else {
-                    Button {
-                        isEditingPresets.toggle()
-                    } label: {
-                        Text("Edit")
-                            .font(.system(size: 12, weight: .medium))
-                            .frame(minWidth: 44)
-                    }
-                    .buttonStyle(.glass)
-                    .glassEffect()
-                    .disabled(store.presets.isEmpty)
-                }
-
-                Button {
-                    showingNewPresetSheet = true
-                } label: {
-                    Label("Define Presets...", systemImage: "display.2")
-                        .font(.system(size: 12))
-                }
-                .buttonStyle(.glassProminent)
-                .glassEffect()
-
-                Spacer()
-            }
-            .padding(10)
         }
         .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 320)
     }
@@ -248,12 +222,12 @@ public struct PresetManagerView: View {
             PresetEditorView(
                 preset: preset,
                 store: store,
+                autoFocusName: focusEditorNameOnCreate,
                 onRename: { newName in
                     selectedPresetName = newName
                 },
-                onDelete: {
-                    presetToDelete = preset
-                    showingDeleteAlert = true
+                onFocused: {
+                    focusEditorNameOnCreate = false
                 }
             )
         } else {
@@ -296,6 +270,55 @@ public struct PresetManagerView: View {
     // MARK: - Sheets
 
     var newPresetSheet: some View {
+        NewPresetSheetView(
+            store: store,
+            onCreated: { name in
+                selectedPresetName = name
+                showingNewPresetSheet = false
+                focusEditorNameOnCreate = true
+                onPresetCreated()
+            },
+            onCancel: {
+                showingNewPresetSheet = false
+            }
+        )
+    }
+
+    // MARK: - Helpers
+
+    private func presetIcon(for preset: DisplayConfiguration) -> String {
+        switch preset.mirroring {
+        case .enabled:
+            return "rectangle.on.rectangle"
+        case .disabled:
+            return "rectangle.split.2x1"
+        case .unchanged:
+            return "display"
+        }
+    }
+
+    private func presetSummary(for preset: DisplayConfiguration) -> String {
+        let mirrorDesc: String
+        switch preset.mirroring {
+        case .enabled: mirrorDesc = "Mirrored"
+        case .disabled: mirrorDesc = "Extended"
+        case .unchanged: mirrorDesc = "Keep mirroring"
+        }
+        return "\(preset.displays.count) display(s) • \(mirrorDesc)"
+    }
+}
+
+// MARK: - New Preset Sheet View
+
+private struct NewPresetSheetView: View {
+    var store: PresetStore
+    var onCreated: (String) -> Void
+    var onCancel: () -> Void
+
+    @State private var newPresetName = ""
+    @FocusState private var isNameFieldFocused: Bool
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             // Header with matching iconography
             HStack {
@@ -327,10 +350,7 @@ public struct PresetManagerView: View {
                             ? "Setup \(store.presets.count + 1)"
                             : newPresetName.trimmingCharacters(in: .whitespacesAndNewlines)
                         if store.captureCurrent(name: name) {
-                            selectedPresetName = name
-                            newPresetName = ""
-                            showingNewPresetSheet = false
-                            onPresetCreated()
+                            onCreated(name)
                         }
                     } label: {
                         Text("Capture Now")
@@ -351,12 +371,13 @@ public struct PresetManagerView: View {
                     .font(.subheadline.bold())
                 TextField("e.g. presentation, vertical-reading, gaming", text: $newPresetName)
                     .textFieldStyle(.roundedBorder)
+                    .focused($isNameFieldFocused)
             }
 
             HStack {
                 Spacer()
                 Button("Cancel") {
-                    showingNewPresetSheet = false
+                    onCancel()
                 }
                 .buttonStyle(.glass)
                 .glassEffect()
@@ -384,10 +405,7 @@ public struct PresetManagerView: View {
                     )
 
                     if store.save(preset: newConfig) {
-                        selectedPresetName = name
-                        newPresetName = ""
-                        showingNewPresetSheet = false
-                        onPresetCreated()
+                        onCreated(name)
                     }
                 }
                 .buttonStyle(.glassProminent)
@@ -398,29 +416,9 @@ public struct PresetManagerView: View {
         }
         .padding(20)
         .frame(width: 480)
-    }
-
-    // MARK: - Helpers
-
-    private func presetIcon(for preset: DisplayConfiguration) -> String {
-        switch preset.mirroring {
-        case .enabled:
-            return "rectangle.on.rectangle"
-        case .disabled:
-            return "rectangle.split.2x1"
-        case .unchanged:
-            return "display"
+        .onAppear {
+            isNameFieldFocused = true
         }
-    }
-
-    private func presetSummary(for preset: DisplayConfiguration) -> String {
-        let mirrorDesc: String
-        switch preset.mirroring {
-        case .enabled: mirrorDesc = "Mirrored"
-        case .disabled: mirrorDesc = "Extended"
-        case .unchanged: mirrorDesc = "Keep mirroring"
-        }
-        return "\(preset.displays.count) display(s) • \(mirrorDesc)"
     }
 }
 
@@ -429,33 +427,62 @@ public struct PresetManagerView: View {
 private struct PresetEditorView: View {
     let preset: DisplayConfiguration
     var store: PresetStore
+    var autoFocusName: Bool = false
     var onRename: ((String) -> Void)?
-    let onDelete: () -> Void
+    var onFocused: (() -> Void)?
 
+    @FocusState private var isEditorNameFocused: Bool
     @State private var editedName: String = ""
     @State private var mirroringPolicy: DisplayConfiguration.MirroringConfig = .enabled
     @State private var displayConfigs: [DisplayConfiguration.DisplayConfig] = []
-    @State private var isDirty = false
+    @State private var lastSavedName: String = ""
+    @State private var isLoadingPreset = false
+    @State private var isEditingName = false
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 // Top Action Bar
                 HStack(alignment: .center) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        HStack {
-                            Text(preset.name)
-                                .font(.title.bold())
-                            if preset.name == store.activePresetName {
-                                Label("Currently Active", systemImage: "checkmark.circle.fill")
-                                    .font(.caption.bold())
-                                    .foregroundStyle(.green)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 3)
-                                    .background(Color.green.opacity(0.15))
-                                    .clipShape(Capsule())
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 8) {
+                            if isEditingName {
+                                TextField("Preset Name", text: $editedName)
+                                    .font(.title2.bold())
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(minWidth: 160, maxWidth: 260)
+                                    .focused($isEditorNameFocused)
+                                    .onSubmit {
+                                        autoSave()
+                                        isEditingName = false
+                                    }
+                                Button {
+                                    autoSave()
+                                    isEditingName = false
+                                } label: {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.title3)
+                                        .foregroundStyle(Color.accentColor)
+                                }
+                                .buttonStyle(.plain)
+                                .help("Save name")
+                            } else {
+                                Text(editedName.isEmpty ? preset.name : editedName)
+                                    .font(.title.bold())
+
+                                Button {
+                                    isEditingName = true
+                                    isEditorNameFocused = true
+                                } label: {
+                                    Image(systemName: "pencil")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundStyle(.secondary)
+                                }
+                                .buttonStyle(.plain)
+                                .help("Rename preset")
                             }
                         }
+
                         Text("Profile ID: \(preset.name)")
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -463,124 +490,96 @@ private struct PresetEditorView: View {
 
                     Spacer()
 
-                    Button {
-                        store.apply(preset: currentEditedPreset)
-                    } label: {
-                        Label("Apply Preset Now", systemImage: "play.fill")
-                            .font(.system(size: 13, weight: .semibold))
-                            .padding(.horizontal, 4)
+                    if preset.name == store.activePresetName {
+                        Label("Currently Active", systemImage: "checkmark.circle.fill")
+                            .font(.caption.bold())
+                            .foregroundStyle(.green)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.green.opacity(0.15))
+                            .clipShape(Capsule())
+                            .transition(.asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 0.85)),
+                                removal: .opacity
+                            ))
                     }
-                    .buttonStyle(.glassProminent)
-                    .glassEffect()
-                    .controlSize(.regular)
                 }
+                .animation(.spring(duration: 0.35, bounce: 0.25), value: store.activePresetName == preset.name)
 
                 Divider()
 
-                // Configuration Details Form
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("Configuration Settings")
-                        .font(.headline)
-
-                    // Preset Name
-                    HStack {
-                        Text("Name:")
-                            .frame(width: 120, alignment: .leading)
-                            .foregroundStyle(.secondary)
-                        TextField("Preset Name", text: $editedName)
-                            .textFieldStyle(.roundedBorder)
-                            .onChange(of: editedName) { isDirty = true }
-                    }
-
-                    // Mirroring Policy
-                    HStack {
-                        Text("Mirroring:")
-                            .frame(width: 120, alignment: .leading)
-                            .foregroundStyle(.secondary)
-                        Picker("", selection: $mirroringPolicy) {
-                            Text("Mirrored (All displays mirror main)").tag(DisplayConfiguration.MirroringConfig.enabled)
-                            Text("Extended Desktop").tag(DisplayConfiguration.MirroringConfig.disabled)
-                            Text("Unchanged (Keep current mirroring)").tag(DisplayConfiguration.MirroringConfig.unchanged)
-                        }
-                        .labelsHidden()
-                        .onChange(of: mirroringPolicy) { isDirty = true }
-                    }
-                }
-                .padding(16)
-                .background(Color(NSColor.controlBackgroundColor))
-                .cornerRadius(10)
-
-                // Displays Configuration
-                VStack(alignment: .leading, spacing: 14) {
-                    HStack {
-                        Text("Configured Displays")
-                            .font(.headline)
-                        Spacer()
-                        Text("\(displayConfigs.count) monitor(s)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    if displayConfigs.isEmpty {
-                        Text("No specific display resolutions bound to this preset. Mirroring policy only.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .padding(.vertical, 6)
-                    } else {
-                        ForEach(Array(displayConfigs.enumerated()), id: \.offset) { index, item in
-                            displayRow(index: index, config: item)
-                        }
-                    }
-                }
-                .padding(16)
-                .background(Color(NSColor.controlBackgroundColor))
-                .cornerRadius(10)
-
-                // Save & Delete Actions
-                HStack(spacing: 12) {
-                    Button {
-                        if store.save(preset: currentEditedPreset, renamingFrom: preset.name) {
-                            isDirty = false
-                            onRename?(currentEditedPreset.name)
-                        }
-                    } label: {
-                        Text("Save Changes")
-                    }
-                    .buttonStyle(.glassProminent)
-                    .glassEffect()
-                    .disabled(!isDirty)
-
-                    Button("Reset Changes") {
-                        resetToPreset()
-                    }
-                    .buttonStyle(.glass)
-                    .glassEffect()
-                    .disabled(!isDirty)
-
+                // Centered Arrangement & Configuration Column
+                HStack {
                     Spacer()
+                    VStack(alignment: .leading, spacing: 20) {
+                        // Display Arrangement Hero Selection
+                        VStack(alignment: .leading, spacing: 14) {
+                            Text("Display Arrangement")
+                                .font(.headline)
 
-                    Button(role: .destructive) {
-                        onDelete()
-                    } label: {
-                        Label("Delete Preset", systemImage: "trash")
-                            .foregroundStyle(.red)
-                    }
-                    .buttonStyle(.glass)
-                    .glassEffect()
-                }
-                .padding(.top, 4)
+                            HStack(spacing: 20) {
+                                HeroDisplayModeCard(
+                                    title: "Extended Desktop",
+                                    subtitle: "Separate displays",
+                                    systemImage: "rectangle.split.2x1",
+                                    isSelected: mirroringPolicy == .disabled
+                                ) {
+                                    guard !isLoadingPreset else { return }
+                                    mirroringPolicy = .disabled
+                                    autoSave()
+                                }
 
-                if let success = store.successMessage {
-                    HStack {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
-                        Text(success)
-                            .font(.caption)
+                                HeroDisplayModeCard(
+                                    title: "Mirror Displays",
+                                    subtitle: "Duplicate main screen",
+                                    systemImage: "rectangle.on.rectangle",
+                                    isSelected: mirroringPolicy == .enabled
+                                ) {
+                                    guard !isLoadingPreset else { return }
+                                    mirroringPolicy = .enabled
+                                    autoSave()
+                                }
+                            }
+                        }
+
+                        // Displays Configuration
+                        VStack(alignment: .leading, spacing: 14) {
+                            Text(configuredDisplaysSectionTitle)
+                                .font(.headline)
+
+                            VStack(spacing: 0) {
+                                if displayConfigs.isEmpty {
+                                    Text("No specific display resolutions bound to this preset. Mirroring policy only.")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .padding(16)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                } else {
+                                    ForEach(Array(displayConfigs.enumerated()), id: \.offset) { index, item in
+                                        if index > 0 {
+                                            Divider()
+                                                .padding(.horizontal, 14)
+                                        }
+                                        displayRow(index: index, config: item)
+                                    }
+                                }
+                            }
+                            .frame(width: 420, alignment: .leading)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .fill(Color(NSColor.controlBackgroundColor))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                            )
+                        }
                     }
-                    .padding(8)
-                    .background(Color.green.opacity(0.1))
-                    .cornerRadius(6)
+                    .frame(width: 420, alignment: .leading)
+                    Spacer()
                 }
+
+
 
                 if let error = store.errorMessage {
                     HStack {
@@ -597,26 +596,87 @@ private struct PresetEditorView: View {
             .padding(24)
         }
         .onAppear {
-            resetToPreset()
+            loadPreset(preset)
+            if autoFocusName {
+                isEditingName = true
+                isEditorNameFocused = true
+                onFocused?()
+            }
         }
-        .onChange(of: preset) {
-            resetToPreset()
+        .onChange(of: preset.name) { _, newName in
+            if newName != lastSavedName {
+                loadPreset(preset)
+                if autoFocusName {
+                    isEditingName = true
+                    isEditorNameFocused = true
+                    onFocused?()
+                }
+            }
+        }
+        .onChange(of: isEditorNameFocused) { _, isFocused in
+            if !isFocused && isEditingName {
+                autoSave()
+                isEditingName = false
+            }
         }
     }
 
     private var currentEditedPreset: DisplayConfiguration {
         DisplayConfiguration(
-            name: editedName,
+            name: editedName.trimmingCharacters(in: .whitespacesAndNewlines),
             mirroring: mirroringPolicy,
             displays: displayConfigs
         )
     }
 
-    private func resetToPreset() {
-        editedName = preset.name
-        mirroringPolicy = preset.mirroring
-        displayConfigs = preset.displays
-        isDirty = false
+    private var configuredDisplaysSectionTitle: String {
+        let count = displayConfigs.count
+        guard count > 0 else { return "Configure displays" }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .spellOut
+        let countWord = formatter.string(from: NSNumber(value: count)) ?? "\(count)"
+        let displayWord = count == 1 ? "display" : "displays"
+
+        switch mirroringPolicy {
+        case .enabled:
+            return "Configure \(countWord) mirrored \(displayWord)"
+        case .disabled:
+            return "Configure \(countWord) extended \(displayWord)"
+        case .unchanged:
+            return "Configure \(countWord) \(displayWord)"
+        }
+    }
+
+    private func loadPreset(_ p: DisplayConfiguration) {
+        isLoadingPreset = true
+        isEditingName = false
+        lastSavedName = p.name
+        editedName = p.name
+        mirroringPolicy = p.mirroring
+        displayConfigs = p.displays
+        Task { @MainActor in
+            isLoadingPreset = false
+        }
+    }
+
+    private func autoSave() {
+        guard !isLoadingPreset else { return }
+        let trimmed = editedName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        let toSave = DisplayConfiguration(
+            name: trimmed,
+            mirroring: mirroringPolicy,
+            displays: displayConfigs
+        )
+
+        if store.save(preset: toSave, renamingFrom: lastSavedName) {
+            let oldName = lastSavedName
+            lastSavedName = trimmed
+            if oldName != trimmed {
+                onRename?(trimmed)
+            }
+        }
     }
 
     @ViewBuilder
@@ -661,22 +721,16 @@ private struct PresetEditorView: View {
                         .font(.system(size: 10, design: .monospaced))
                         .foregroundStyle(.secondary)
                 }
-
                 Spacer()
-
-                if let live = liveDisplay?.currentMode {
-                    Text("Currently: \(live.description)")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                }
             }
 
-            HStack(spacing: 16) {
+            HStack(spacing: 14) {
                 // Resolution Selector
-                HStack {
+                HStack(spacing: 6) {
                     Text("Resolution:")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .fixedSize()
 
                     let currentResolutionString = config.width != nil && config.height != nil
                         ? "\(config.width!)x\(config.height!)"
@@ -685,7 +739,6 @@ private struct PresetEditorView: View {
                     Picker("", selection: Binding(
                         get: { currentResolutionString },
                         set: { (newVal: String) in
-                            isDirty = true
                             if newVal == "Native / Unchanged" {
                                 updateDisplayConfig(at: index, width: nil, height: nil)
                             } else {
@@ -716,19 +769,19 @@ private struct PresetEditorView: View {
                         }
                     }
                     .labelsHidden()
-                    .frame(width: 170)
+                    .frame(width: 125)
                 }
 
                 // Refresh Rate Selector
-                HStack {
+                HStack(spacing: 6) {
                     Text("Refresh:")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .fixedSize()
 
                     Picker("", selection: Binding<Double?>(
                         get: { config.refreshRate },
                         set: { (newVal: Double?) in
-                            isDirty = true
                             updateDisplayConfig(at: index, refreshRate: .some(newVal))
                         }
                     )) {
@@ -738,13 +791,13 @@ private struct PresetEditorView: View {
                         }
                     }
                     .labelsHidden()
-                    .frame(width: 130)
+                    .frame(width: 125)
                 }
+
+                Spacer()
             }
         }
-        .padding(12)
-        .background(Color(NSColor.textBackgroundColor))
-        .cornerRadius(8)
+        .padding(14)
     }
 
     private func formatRate(_ rate: Double) -> String {
@@ -777,16 +830,73 @@ private struct PresetEditorView: View {
             mirrorMasterIndex: current.mirrorMasterIndex,
             mirrorMasterSerial: current.mirrorMasterSerial
         )
+        autoSave()
+    }
+}
+
+// MARK: - Hero Display Mode Card
+
+private struct HeroDisplayModeCard: View {
+    let title: String
+    let subtitle: String
+    let systemImage: String
+    let isSelected: Bool
+    let onSelect: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: onSelect) {
+            VStack(spacing: 8) {
+                HStack {
+                    Spacer()
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(isSelected ? Color.accentColor : Color.secondary.opacity(0.35))
+                }
+
+                Spacer(minLength: 4)
+
+                Image(systemName: systemImage)
+                    .font(.system(size: 54, weight: .regular))
+                    .foregroundStyle(isSelected ? Color.accentColor : (isHovered ? Color.primary : Color.secondary))
+                    .frame(height: 60)
+
+                Spacer(minLength: 4)
+
+                VStack(spacing: 3) {
+                    Text(title)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.primary)
+                    Text(subtitle)
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.secondary)
+                }
+                .multilineTextAlignment(.center)
+            }
+            .padding(14)
+            .frame(width: 200, height: 185)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(isSelected ? Color.accentColor.opacity(0.10) : (isHovered ? Color(NSColor.controlBackgroundColor).opacity(0.8) : Color(NSColor.controlBackgroundColor)))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(isSelected ? Color.accentColor : (isHovered ? Color.secondary.opacity(0.4) : Color.secondary.opacity(0.2)), lineWidth: isSelected ? 2 : 1)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.15)) {
+                isHovered = hovering
+            }
+        }
     }
 }
 
 #Preview("Preset Manager - Populated") {
     PresetManagerView(store: .preview, initialVisibility: .all)
-        .frame(width: 760, height: 500)
-}
-
-#Preview("Preset Manager - Edit Mode") {
-    PresetManagerView(store: .preview, initialVisibility: .all, initialEditing: true)
         .frame(width: 760, height: 500)
 }
 

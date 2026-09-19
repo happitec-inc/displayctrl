@@ -168,11 +168,12 @@ public final class ConfigurationManager: @unchecked Sendable {
     public func saveConfiguration(_ configuration: DisplayConfiguration) throws {
         var configurations = try loadConfigurations()
 
-        // Remove existing configuration with the same name
-        configurations.removeAll { $0.name.lowercased() == configuration.name.lowercased() }
-
-        // Add new configuration
-        configurations.append(configuration)
+        // Replace existing configuration in place to preserve order, or append
+        if let idx = configurations.firstIndex(where: { $0.name.lowercased() == configuration.name.lowercased() }) {
+            configurations[idx] = configuration
+        } else {
+            configurations.append(configuration)
+        }
 
         try saveConfigurations(configurations)
     }

@@ -84,28 +84,9 @@ public struct MenuBarPopupView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     ForEach(store.presets, id: \.name) { preset in
                         let isActive = store.activePresetName?.lowercased() == preset.name.lowercased()
-                        Button {
+                        MenuBarPresetRow(preset: preset, isActive: isActive) {
                             selectPreset(preset)
-                        } label: {
-                            HStack(spacing: 8) {
-                                // Reserved checkmark space: fixed width so text never shifts horizontally
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .frame(width: 14, alignment: .center)
-                                    .opacity(isActive ? 1 : 0)
-
-                                Text(preset.name)
-                                    .font(.system(size: 12, weight: isActive ? .semibold : .regular))
-
-                                Spacer()
-                            }
-                            .contentShape(Rectangle())
-                            .padding(.vertical, 4)
-                            .padding(.horizontal, 6)
                         }
-                        .buttonStyle(.plain)
-                        .background(isActive ? Color.accentColor.opacity(0.12) : Color.clear)
-                        .cornerRadius(5)
                     }
                 }
             }
@@ -113,42 +94,91 @@ public struct MenuBarPopupView: View {
             Divider()
 
             // Manage Presets CTA
-            Button {
+            MenuBarActionButton(title: "Manage Presets...", foregroundStyle: .primary) {
                 dismissAndOpenManager()
-            } label: {
-                HStack {
-                    Text("Manage Presets...")
-                        .font(.system(size: 12))
-                    Spacer()
-                }
-                .contentShape(Rectangle())
-                .padding(.vertical, 3)
-                .padding(.horizontal, 6)
             }
-            .buttonStyle(.plain)
 
             Divider()
 
             // Quit
-            Button {
+            MenuBarActionButton(title: "Quit", foregroundStyle: .primary) {
                 NSApp.terminate(nil)
-            } label: {
-                HStack {
-                    Text("Quit DisplayControl Menu")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                }
-                .contentShape(Rectangle())
-                .padding(.vertical, 3)
-                .padding(.horizontal, 6)
             }
-            .buttonStyle(.plain)
         }
         .padding(12)
         .frame(width: 230)
         .onAppear {
             store.load()
+        }
+    }
+}
+
+private struct MenuBarPresetRow: View {
+    let preset: DisplayConfiguration
+    let isActive: Bool
+    let onSelect: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: onSelect) {
+            HStack(spacing: 8) {
+                // Reserved checkmark space: fixed width so text never shifts horizontally
+                Image(systemName: "checkmark")
+                    .font(.system(size: 11, weight: .semibold))
+                    .frame(width: 14, alignment: .center)
+                    .opacity(isActive ? 1 : 0)
+
+                Text(preset.name)
+                    .font(.system(size: 12, weight: isActive ? .semibold : .regular))
+
+                Spacer()
+            }
+            .contentShape(Rectangle())
+            .padding(.vertical, 4)
+            .padding(.horizontal, 6)
+        }
+        .buttonStyle(.plain)
+        .background(
+            RoundedRectangle(cornerRadius: 5)
+                .fill(
+                    isActive
+                        ? (isHovered ? Color.accentColor.opacity(0.22) : Color.accentColor.opacity(0.12))
+                        : (isHovered ? Color.accentColor.opacity(0.15) : Color.clear)
+                )
+        )
+        .onHover { hovering in
+            isHovered = hovering
+        }
+    }
+}
+
+private struct MenuBarActionButton: View {
+    let title: String
+    var foregroundStyle: Color = .primary
+    let action: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                Text(title)
+                    .font(.system(size: 12))
+                    .foregroundStyle(foregroundStyle)
+                Spacer()
+            }
+            .contentShape(Rectangle())
+            .padding(.vertical, 3)
+            .padding(.horizontal, 6)
+        }
+        .buttonStyle(.plain)
+        .background(
+            RoundedRectangle(cornerRadius: 5)
+                .fill(isHovered ? Color.accentColor.opacity(0.15) : Color.clear)
+        )
+        .onHover { hovering in
+            isHovered = hovering
         }
     }
 }

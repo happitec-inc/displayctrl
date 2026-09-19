@@ -137,7 +137,6 @@ public final class PresetStore {
         do {
             try ConfigurationManager.shared.applyConfiguration(preset)
             self.errorMessage = nil
-            self.successMessage = "Applied preset '\(preset.name)'"
             // Re-query after display mode changes settle
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(500))
@@ -146,7 +145,6 @@ public final class PresetStore {
             }
         } catch {
             self.errorMessage = "Failed to apply '\(preset.name)': \(error.localizedDescription)"
-            self.successMessage = nil
         }
     }
 
@@ -181,9 +179,16 @@ public final class PresetStore {
 
         do {
             if let oldName = oldName, oldName.lowercased() != trimmed.lowercased() {
-                try ConfigurationManager.shared.deleteConfiguration(named: oldName)
+                var configs = try ConfigurationManager.shared.loadConfigurations()
+                if let idx = configs.firstIndex(where: { $0.name.lowercased() == oldName.lowercased() }) {
+                    configs[idx] = preset
+                    try ConfigurationManager.shared.saveConfigurations(configs)
+                } else {
+                    try ConfigurationManager.shared.saveConfiguration(preset)
+                }
+            } else {
+                try ConfigurationManager.shared.saveConfiguration(preset)
             }
-            try ConfigurationManager.shared.saveConfiguration(preset)
             self.errorMessage = nil
             self.successMessage = "Saved preset '\(preset.name)'"
             load()
