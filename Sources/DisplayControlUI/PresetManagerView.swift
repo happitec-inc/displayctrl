@@ -895,6 +895,7 @@ private struct HeroDisplayModeCard: View {
     }
 }
 
+#if DEBUG
 #Preview("Preset Manager - Populated") {
     PresetManagerView(store: .preview, initialVisibility: .all)
         .frame(width: 760, height: 500)
@@ -910,6 +911,7 @@ private struct HeroDisplayModeCard: View {
         .frame(width: 480)
         .padding(16)
 }
+#endif
 
 
 
