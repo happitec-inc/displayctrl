@@ -1,0 +1,101 @@
+name: DisplayControl
+options:
+  bundleIdPrefix: com.happitec
+  deploymentTarget:
+    macOS: "26.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "26.0"
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_HARDENED_RUNTIME: YES
+    DEAD_CODE_STRIPPING: YES
+    ONLY_ACTIVE_ARCH: NO
+
+targets:
+  # ---- module libraries ---------------------------------------------------
+  DisplayControlCore:
+    type: library.static
+    platform: macOS
+    sources:
+      - path: Sources/DisplayControlCore
+        excludes:
+          - Documentation.docc
+
+  DisplayControlUI:
+    type: library.static
+    platform: macOS
+    sources:
+      - path: Sources/DisplayControlUI
+    dependencies:
+      - target: DisplayControlCore
+
+  # ---- distributable app --------------------------------------------------
+  DisplayControlApp:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sources/DisplayControlApp
+      - path: Sources/DisplayControlIntents
+      - path: Resources
+        buildPhase: resources
+    dependencies:
+      - target: DisplayControlCore
+      - target: DisplayControlUI
+      - target: DisplayControlWidgetExtension
+        embed: true
+      - framework: AppIntents.framework
+        embed: false
+    info:
+      path: App-Info.plist
+      properties:
+        CFBundleName: DisplayControl
+        CFBundleDisplayName: DisplayControl
+        CFBundleExecutable: $(EXECUTABLE_NAME)
+        CFBundleIconFile: AppIcon
+        CFBundlePackageType: APPL
+        LSMinimumSystemVersion: "26.0"
+        LSApplicationCategoryType: public.app-category.utilities
+        NSHumanReadableCopyright: Copyright © happitec-inc. GPL-3.0-or-later.
+        NSPrincipalClass: NSApplication
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.happitec.displayctrl
+        PRODUCT_NAME: DisplayControl
+
+  # ---- Control Center widget extension ------------------------------------
+  DisplayControlWidgetExtension:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: Sources/DisplayControlWidget
+    dependencies:
+      - target: DisplayControlCore
+      - framework: WidgetKit.framework
+        embed: false
+      - framework: AppIntents.framework
+        embed: false
+    info:
+      path: WidgetExtension-Info.plist
+      properties:
+        CFBundleName: DisplayControlWidget
+        CFBundleDisplayName: DisplayControl Widgets
+        CFBundleExecutable: $(EXECUTABLE_NAME)
+        CFBundlePackageType: XPC!
+        LSMinimumSystemVersion: "26.0"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.happitec.displayctrl.widget
+        PRODUCT_NAME: DisplayControlWidgetExtension
+
+schemes:
+  DisplayControlApp:
+    build:
+      targets:
+        DisplayControlApp: all
+    run:
+      config: Debug
