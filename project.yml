@@ -61,7 +61,7 @@ targets:
       properties:
         CFBundleName: DisplayControl
         CFBundleDisplayName: DisplayControl
-        CFBundleExecutable: DisplayControlApp
+        CFBundleExecutable: $(EXECUTABLE_NAME)
         CFBundleIconFile: AppIcon
         CFBundlePackageType: APPL
         LSMinimumSystemVersion: "26.0"
@@ -90,7 +90,7 @@ targets:
       properties:
         CFBundleName: DisplayControlWidget
         CFBundleDisplayName: DisplayControl Widgets
-        CFBundleExecutable: DisplayControlWidgetExtension
+        CFBundleExecutable: $(EXECUTABLE_NAME)
         CFBundlePackageType: XPC!
         LSMinimumSystemVersion: "26.0"
         NSExtension:

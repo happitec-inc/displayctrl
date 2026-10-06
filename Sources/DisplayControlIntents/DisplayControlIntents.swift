@@ -170,7 +170,7 @@ struct DisplayControlShortcuts: AppShortcutsProvider {
             intent: ApplyConfigurationIntent(),
             phrases: [
                 "Apply display configuration in \(.applicationName)",
-                "Switch to \(\.$configurationName) in \(.applicationName)"
+                "Switch display configuration in \(.applicationName)"
             ],
             shortTitle: "Apply Configuration",
             systemImageName: "gearshape.2"

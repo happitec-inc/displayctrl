@@ -13,7 +13,7 @@ import DisplayControlCore
 // MARK: - Widget Toggle Intent
 
 @available(macOS 26.0, *)
-struct ToggleMirroringControlIntent: ControlConfigurationIntent, SetValueIntent {
+struct ToggleMirroringControlIntent: SetValueIntent {
     static let title: LocalizedStringResource = "Toggle Mirroring"
 
       @Parameter(title: "Mirroring")
@@ -92,9 +92,12 @@ struct SelectConfigurationIntent: AppIntent, ControlConfigurationIntent {
     static let openAppWhenRun: Bool = false
 
       @Parameter(title: "Configuration")
-    var value: ConfigurationEntity
+    var value: ConfigurationEntity?
 
     func perform() async throws -> some IntentResult {
+        guard let value else {
+            throw ConfigurationError.notFound("selected configuration")
+           }
         try ConfigurationManager.shared.applyConfiguration(named: value.id)
         return .result()
       }
