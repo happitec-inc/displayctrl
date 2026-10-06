@@ -10,7 +10,7 @@ import AppKit
 public enum AppHandoff {
     public static func openPresetManager(store: PresetStore? = nil) {
         // 1. Try finding by bundle identifier
-        if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.happitec.DisplayControlApp") {
+        if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.happitec.displayctrl") {
             NSWorkspace.shared.openApplication(at: appURL, configuration: NSWorkspace.OpenConfiguration())
             return
         }

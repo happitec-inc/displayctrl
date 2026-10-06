@@ -116,6 +116,10 @@ struct SetResolutionIntent: AppIntent {
         let manager = DisplayManager.shared
         let refresh = refreshRate.map { Double($0) }
 
+        guard displayIndex >= 0, displayIndex <= Int(UInt32.max) else {
+            throw SetResolutionIntentError.invalidDisplayIndex(displayIndex)
+          }
+
         try manager.setMode(
             displayIndex: UInt32(displayIndex),
             width: width,
@@ -129,6 +133,19 @@ struct SetResolutionIntent: AppIntent {
             return .result(dialog: "Set display \(displayIndex) to \(width)x\(height)")
         }
     }
+}
+
+// MARK: - Intent Errors
+
+enum SetResolutionIntentError: Error, CustomLocalizedStringResourceConvertible {
+    case invalidDisplayIndex(Int)
+
+    var localizedStringResource: LocalizedStringResource {
+        switch self {
+        case .invalidDisplayIndex(let index):
+            return "Display index \(index) is out of range (must be between 0 and \(Int(UInt32.max)))."
+          }
+     }
 }
 
 // MARK: - App Shortcuts Provider
