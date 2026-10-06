@@ -124,7 +124,7 @@ Two executables ship from this package:
   with the same preset access. It works as an alternative to, or alongside, the
   Control Center widget. Both build against the package's macOS 26 minimum.
 
-`DisplayControlMenu` builds with SwiftPM (`swift build -c release -target DisplayControlMenu`);
+`DisplayControlMenu` builds with SwiftPM (`swift build -c release --product DisplayControlMenu`);
 it is not part of the `DisplayControlApp` Xcode target.
 
 ## Control Center Widget

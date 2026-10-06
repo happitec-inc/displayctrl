@@ -32,14 +32,6 @@ targets:
     dependencies:
       - target: DisplayControlCore
 
-  DisplayControlIntents:
-    type: library.static
-    platform: macOS
-    sources:
-      - path: Sources/DisplayControlIntents
-    dependencies:
-      - target: DisplayControlCore
-
   # ---- distributable app --------------------------------------------------
   DisplayControlApp:
     type: application
