@@ -1,6 +1,6 @@
 # displayctrl
 
-A macOS CLI for managing display mirroring and resolution settings. Combines and modernizes two excellent open-source utilities into a unified tool.
+A macOS tool for managing display mirroring and resolution settings. Combines and modernizes two excellent open-source utilities into a unified CLI, GUI preset manager, menu bar extra, Control Center widget, and Shortcuts integration.
 
 ## Features
 
@@ -8,6 +8,10 @@ A macOS CLI for managing display mirroring and resolution settings. Combines and
 - **Resolution Management**: Set display resolution and refresh rate for any connected display
 - **Named Configurations**: Save and apply named display configurations (e.g., `ipad`, `presentation`, `extended`)
 - **Command-Line Interface**: Full-featured CLI for automation and scripting
+- **GUI Preset Manager**: Native SwiftUI app for browsing and applying presets
+- **Menu Bar Extra**: Companion app with preset access from the menu bar
+- **Control Center Widget**: Quick access to mirroring controls from macOS Control Center (macOS 26+)
+- **Shortcuts Integration**: AppIntents for use with Apple Shortcuts (macOS 14+)
 
 ## Based On
 
@@ -16,7 +20,8 @@ A macOS CLI for managing display mirroring and resolution settings. Combines and
 
 ## Requirements
 
-- macOS 14.0 or later
+- macOS 26.0 or later (package minimum; the Control Center widget requires it)
+- macOS 14.0 or later (for the Shortcuts intents on their own)
 - Swift 6.3 or later (for building from source)
 
 ## Installation
@@ -43,6 +48,21 @@ cd displayctrl
 swift build -c release
 cp .build/release/displayctrl /usr/local/bin/
 ```
+
+### Building the App Bundle
+
+The `.app` bundle — GUI preset manager plus the embedded Control Center
+widget extension — is built with [XcodeGen](https://github.com/yonaskolb/XcodeGen):
+
+```bash
+brew install xcodegen
+xcodegen generate
+xcodebuild -project DisplayControl.xcodeproj -scheme DisplayControlApp -configuration Release
+```
+
+Or open `DisplayControl.xcodeproj` in Xcode and build the `DisplayControlApp`
+scheme (run it with ⌘R). Signing and notarization follow the same
+`notarize-macos-app.yml` pattern used for agents.happitec.com.
 
 ## Usage
 
@@ -93,6 +113,50 @@ displayctrl config init --force
 # Show configuration file path
 displayctrl config path
 ```
+
+## GUI & Menu Bar
+
+Two executables ship from this package:
+
+- **`DisplayControlApp`** — the Preset Manager window (all saved configurations,
+  with create/edit/delete/apply), included in the `.app` bundle above.
+- **`DisplayControlMenu`** — a `MenuBarExtra` companion living in the menu bar
+  with the same preset access. It works as an alternative to, or alongside, the
+  Control Center widget; the widget requires macOS 26 while the menu bar extra
+  is available since macOS 13.
+
+Build either with SwiftPM (`swift build -c release`) or from the Xcode project.
+
+## Control Center Widget
+
+1. Build and run the `DisplayControlApp` target from `DisplayControl.xcodeproj`
+   (this installs the embedded widget extension).
+2. Open System Settings > Control Center & Widgets and add:
+   - **Display Mirroring** — a toggle that flips mirroring on or off.
+   - **Display Configuration** — a picker populated live from your saved
+     configurations; pick one and pressing the control applies it.
+3. Configuration choices are read from the same
+   `displayconfigs.json` the CLI and GUI use, so presets you save elsewhere
+   appear in the picker without rebuilding.
+
+The Control Center controls require macOS 26.0 or later.
+
+## Shortcuts Integration
+
+Available intents for use in Apple Shortcuts:
+
+- **Toggle Display Mirroring**: Toggle mirroring on/off
+- **Enable Display Mirroring**: Turn mirroring on
+- **Disable Display Mirroring**: Turn mirroring off
+- **Apply Display Configuration**: Apply a named configuration
+- **List Display Configurations**: Get the list of saved configuration names
+- **Set Display Resolution**: Set a display's width/height (refresh rate optional)
+
+Suggested phrases (say to Siri or use in Shortcuts): "Toggle display mirroring
+in DisplayControl", "Switch to ipad in DisplayControl", and similar variants.
+
+AppIntents work on macOS 14.0 and later, so the `DisplayControlIntents` target
+can ship ahead of the widget if needed.
 
 ## Named Configurations
 
@@ -170,15 +234,24 @@ displayctrl config save extended
 
 ```
 displayctrl/
-├── Package.swift                       # Swift package manifest
+├── Package.swift                         # Swift package manifest
+├── project.yml                           # XcodeGen spec for the .app bundle
 └── Sources/
-    ├── DisplayControl/                 # CLI executable (displayctrl)
+    ├── DisplayControl/                   # CLI executable (displayctrl)
     │   └── main.swift
-    └── DisplayControlCore/             # Core library
-        ├── DisplayInfo.swift           # Data types
-        ├── DisplayManager.swift        # Display operations
-        └── Configuration.swift        # Config management
+    ├── DisplayControlApp/                # Preset Manager GUI (@main SwiftUI app)
+    ├── DisplayControlMenu/               # Menu bar extra (MenuBarExtra)
+    ├── DisplayControlCore/               # Core library
+    │   ├── DisplayInfo.swift             # Data types
+    │   ├── DisplayManager.swift          # Display operations
+    │   └── Configuration.swift           # Config management
+    ├── DisplayControlUI/                 # Views, preset store, window manager
+    ├── DisplayControlIntents/            # AppIntents for Shortcuts
+    └── DisplayControlWidget/             # Control Center widget (ControlWidgets)
 ```
+
+`DisplayControl.xcodeproj` is generated, not committed: run
+`xcodegen generate` after cloning.
 
 ## Building for Release
 
