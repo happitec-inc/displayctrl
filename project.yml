@@ -46,12 +46,12 @@ targets:
     platform: macOS
     sources:
       - path: Sources/DisplayControlApp
+      - path: Sources/DisplayControlIntents
       - path: Resources
         buildPhase: resources
     dependencies:
       - target: DisplayControlCore
       - target: DisplayControlUI
-      - target: DisplayControlIntents
       - target: DisplayControlWidgetExtension
         embed: true
       - framework: AppIntents.framework

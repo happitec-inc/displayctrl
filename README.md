@@ -11,7 +11,7 @@ A macOS tool for managing display mirroring and resolution settings. Combines an
 - **GUI Preset Manager**: Native SwiftUI app for browsing and applying presets
 - **Menu Bar Extra**: Companion app with preset access from the menu bar
 - **Control Center Widget**: Quick access to mirroring controls from macOS Control Center (macOS 26+)
-- **Shortcuts Integration**: AppIntents for use with Apple Shortcuts (macOS 14+)
+- **Shortcuts Integration**: AppIntents for use with Apple Shortcuts and Siri
 
 ## Based On
 
@@ -21,7 +21,6 @@ A macOS tool for managing display mirroring and resolution settings. Combines an
 ## Requirements
 
 - macOS 26.0 or later (package minimum; the Control Center widget requires it)
-- macOS 14.0 or later (for the Shortcuts intents on their own)
 - Swift 6.3 or later (for building from source)
 
 ## Installation
@@ -61,8 +60,9 @@ xcodebuild -project DisplayControl.xcodeproj -scheme DisplayControlApp -configur
 ```
 
 Or open `DisplayControl.xcodeproj` in Xcode and build the `DisplayControlApp`
-scheme (run it with ⌘R). Signing and notarization follow the same
-`notarize-macos-app.yml` pattern used for agents.happitec.com.
+scheme (run it with ⌘R). Signing and notarization are planned via the
+shared `notarize-macos-app.yml` reusable workflow (displayctrl#10);
+builds today are unsigned.
 
 ## Usage
 
@@ -122,10 +122,10 @@ Two executables ship from this package:
   with create/edit/delete/apply), included in the `.app` bundle above.
 - **`DisplayControlMenu`** — a `MenuBarExtra` companion living in the menu bar
   with the same preset access. It works as an alternative to, or alongside, the
-  Control Center widget; the widget requires macOS 26 while the menu bar extra
-  is available since macOS 13.
+  Control Center widget. Both build against the package's macOS 26 minimum.
 
-Build either with SwiftPM (`swift build -c release`) or from the Xcode project.
+`DisplayControlMenu` builds with SwiftPM (`swift build -c release -target DisplayControlMenu`);
+it is not part of the `DisplayControlApp` Xcode target.
 
 ## Control Center Widget
 
@@ -152,11 +152,10 @@ Available intents for use in Apple Shortcuts:
 - **List Display Configurations**: Get the list of saved configuration names
 - **Set Display Resolution**: Set a display's width/height (refresh rate optional)
 
-Suggested phrases (say to Siri or use in Shortcuts): "Toggle display mirroring
-in DisplayControl", "Switch to ipad in DisplayControl", and similar variants.
-
-AppIntents work on macOS 14.0 and later, so the `DisplayControlIntents` target
-can ship ahead of the widget if needed.
+Registered Siri phrases: "Toggle display mirroring in DisplayControl",
+"Enable display mirroring in DisplayControl", "Disable display mirroring in
+DisplayControl", and "Apply display configuration in DisplayControl" (Siri
+prompts for the configuration name).
 
 ## Named Configurations
 

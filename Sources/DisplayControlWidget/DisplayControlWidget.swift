@@ -28,7 +28,11 @@ struct ToggleMirroringControlIntent: SetValueIntent {
       }
 
     func perform() async throws -> some IntentResult {
-        try DisplayManager.shared.toggleMirroring()
+        if value {
+            try DisplayManager.shared.enableMirroring()
+            } else {
+            try DisplayManager.shared.disableMirroring()
+           }
         return .result()
       }
 }
@@ -105,14 +109,29 @@ struct SelectConfigurationIntent: AppIntent, ControlConfigurationIntent {
 
 // MARK: - Control Widget
 
+/// Supplies the Control Center toggle with fresh mirroring state, so a tap
+/// acts on the current state even when mirroring changed via CLI, GUI, or
+/// the menu bar extra.
+@available(macOS 26.0, *)
+struct MirroringStateProvider: ControlValueProvider {
+    var previewValue: Bool {
+        false
+       }
+
+    func currentValue() async throws -> Bool {
+        DisplayManager.shared.isMirrored()
+       }
+}
+
 @available(macOS 26.0, *)
 struct DisplayMirroringControl: ControlWidget {
     var body: some ControlWidgetConfiguration {
         StaticControlConfiguration(
-            kind: "com.displaycontrol.mirroring"
-          ) {
+            kind: "com.happitec.displayctrl.mirroring",
+            provider: MirroringStateProvider()
+          ) { isOn in
             ControlWidgetToggle(
-                isOn: DisplayManager.shared.isMirrored(),
+                isOn: isOn,
                 action: ToggleMirroringControlIntent()
               ) {
                 Label("Display Mirroring", systemImage: "rectangle.on.rectangle")
@@ -129,7 +148,7 @@ struct DisplayMirroringControl: ControlWidget {
 struct ConfigurationSelectorControl: ControlWidget {
     var body: some ControlWidgetConfiguration {
         AppIntentControlConfiguration(
-            kind: "com.displaycontrol.configuration",
+            kind: "com.happitec.displayctrl.configuration",
             intent: SelectConfigurationIntent.self
           ) { intent in
             ControlWidgetButton(action: intent) {
